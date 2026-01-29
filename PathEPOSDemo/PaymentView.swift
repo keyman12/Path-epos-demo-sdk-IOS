@@ -96,45 +96,65 @@ struct PaymentView: View {
                             }
                         }
                         
-                        // Continue Button
-                        Button(action: {
-                            if selectedPaymentMethod == .cash {
-                                showingCashInput = true
-                            } else if selectedPaymentMethod == .card {
-                                showingCardInput = true
-                            }
-                        }) {
-                            Text("Continue")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(selectedPaymentMethod != nil ? Color(hex: "#FF5252") : Color.gray)
-                                .cornerRadius(12)
-                        }
-                        .disabled(selectedPaymentMethod == nil)
-                        .padding(.horizontal)
-                        
-                        // Bottom spacing to ensure button is not cut off
-                        Spacer(minLength: 20)
+                        // bottom padding so last content isn't tight to the inset bar
+                        Spacer(minLength: 12)
                     }
                     .padding()
+                    // Extra space so bottom of cards/buttons aren't obscured by the fixed Continue bar
+                    .padding(.bottom, 140)
                 }
             }
             .background(Color(.systemBackground))
+            // Fixed bottom action area: the Continue button never scrolls away
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 12) {
+                    Button(action: {
+                        if selectedPaymentMethod == .cash {
+                            showingCashInput = true
+                        } else if selectedPaymentMethod == .card {
+                            showingCardInput = true
+                        }
+                    }) {
+                        Text("Continue")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(selectedPaymentMethod != nil ? Color(hex: "#FF5252") : Color.gray)
+                            .cornerRadius(12)
+                    }
+                    .disabled(selectedPaymentMethod == nil)
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
+                .background(Color(.systemBackground))
+                .overlay(
+                    VStack(spacing: 0) {
+                        Divider()
+                        Spacer(minLength: 0)
+                    }
+                )
+            }
         }
         .sheet(isPresented: $showingCashInput) {
             CashPaymentView(totalAmount: totalAmount, onComplete: {
+                let minor = Int(round(totalAmount * 100))
+                BLEUARTManager.shared.addCashTransaction(amountMinor: minor, currency: "GBP")
                 onTransactionComplete()
                 dismiss()
             })
         }
         .sheet(isPresented: $showingCardInput) {
-            CardPaymentView(totalAmount: totalAmount, onComplete: {
-                onTransactionComplete()
+            // Convert to minor currency units (e.g., cents/pence)
+            let minor = Int(round(totalAmount * 100))
+            CardProcessingView(amountMinor: minor, currency: "GBP") { success, txnId in
+                if success {
+                    onTransactionComplete()
+                }
                 dismiss()
-            })
+            }
         }
         .navigationBarHidden(true)
     }

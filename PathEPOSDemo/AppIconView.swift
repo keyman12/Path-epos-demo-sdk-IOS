@@ -61,3 +61,6 @@ struct AppIconView: View {
         .frame(width: 200, height: 200)
         .scaleEffect(1.0)
 }
+
+
+

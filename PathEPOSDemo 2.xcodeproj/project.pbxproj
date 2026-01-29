@@ -186,7 +186,7 @@
 					};
 				};
 			};
-			buildConfigurationList = B658807F2E619459002187A3 /* Build configuration list for PBXProject "PathEPOSDemo" */;
+			buildConfigurationList = B658807F2E619459002187A3 /* Build configuration list for PBXProject "PathEPOSDemo 2" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -395,8 +395,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Used to connect to the payment terminal.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Used to connect to the payment terminal.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -422,8 +425,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Used to connect to the payment terminal.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Used to connect to the payment terminal.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -513,7 +519,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		B658807F2E619459002187A3 /* Build configuration list for PBXProject "PathEPOSDemo" */ = {
+		B658807F2E619459002187A3 /* Build configuration list for PBXProject "PathEPOSDemo 2" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B65880A32E61945D002187A3 /* Debug */,

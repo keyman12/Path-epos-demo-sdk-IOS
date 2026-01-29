@@ -22,8 +22,9 @@ struct EPOSView: View {
                         VStack(spacing: 0) {
                             // Top Bar with Path Logo and Category Filter
                             HStack {
-                                // Path Logo on the left
-                                Image("PathLogoNoBack")
+                                // New ISV Logo on the left
+                                Image("ISVLogo")
+                                    .renderingMode(.original)
                                     .resizable()
                                     .scaledToFit()
                                     .frame(height: 40)
@@ -64,9 +65,9 @@ struct EPOSView: View {
                         
                         // Cart Summary (Right side - 1/4 of screen)
                         VStack(spacing: 0) {
-                            // Top inset bars matching system color
-                            Color(.systemGray6).frame(height: 12)
-                            Color(.systemGray6).frame(height: 8)
+                            // Top inset bars matching system color (nudge down by 1pt)
+                            Color(.systemGray6).frame(height: 1)
+                            Color(.systemGray6).frame(height: 2)
                             // Cart title sits above the rounded cart box
                             HStack {
                                 Text("Cart")
@@ -74,11 +75,17 @@ struct EPOSView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(primaryColor)
                                 Spacer()
+                                // Settings button pinned at top-right of the cart column
+                                NavigationLink(destination: SettingsView()) {
+                                    Image(systemName: "gearshape")
+                                        .font(.title2)
+                                        .foregroundColor(.primary)
+                                }
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 8)
                             // Gap between title and rounded cart box
-                            Color(.systemGray6).frame(height: 18)
+                            Color(.systemGray6).frame(height: 10)
                             // Rounded cart box
                             VStack(spacing: 0) {
                             
@@ -152,6 +159,8 @@ struct EPOSView: View {
                         }
                         .frame(width: geometry.size.width * 0.25)
                         .frame(maxHeight: .infinity)
+                        .padding(.top, geometry.safeAreaInsets.top)
+                        .padding(.trailing, 0)
                     }
                 }
             }
@@ -359,3 +368,4 @@ struct CategoryButton: View {
 #Preview {
     EPOSView()
 }
+
