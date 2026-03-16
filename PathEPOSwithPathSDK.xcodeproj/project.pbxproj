@@ -1,0 +1,614 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B618AC0B2F68024A000CEA05 /* PathTerminalSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B12E61945D002187A3 /* PathTerminalSDK */; };
+		B618AC0C2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B22E61945D002187A3 /* PathEmulatorAdapter */; };
+		B618AC0D2F68024A000CEA05 /* PathCoreModels in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B32E61945D002187A3 /* PathCoreModels */; };
+		B618AC0E2F68024A000CEA05 /* PathTerminalSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B12E61945D002187A3 /* PathTerminalSDK */; };
+		B618AC0F2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B22E61945D002187A3 /* PathEmulatorAdapter */; };
+		B618AC102F68024A000CEA05 /* PathCoreModels in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B32E61945D002187A3 /* PathCoreModels */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B65880922E61945D002187A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B658807C2E619459002187A3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B65880832E619459002187A3;
+			remoteInfo = PathEPOSDemo;
+		};
+		B658809C2E61945D002187A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B658807C2E619459002187A3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B65880832E619459002187A3;
+			remoteInfo = PathEPOSDemo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		B65880842E619459002187A3 /* PathEPOSDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PathEPOSDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B65880912E61945D002187A3 /* PathEPOSDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PathEPOSDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B658809B2E61945D002187A3 /* PathEPOSDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PathEPOSDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		B65880862E619459002187A3 /* PathEPOSDemo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PathEPOSDemo;
+			sourceTree = "<group>";
+		};
+		B65880942E61945D002187A3 /* PathEPOSDemoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PathEPOSDemoTests;
+			sourceTree = "<group>";
+		};
+		B658809E2E61945D002187A3 /* PathEPOSDemoUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PathEPOSDemoUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B65880812E619459002187A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B618AC0D2F68024A000CEA05 /* PathCoreModels in Frameworks */,
+				B618AC0C2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */,
+				B618AC0B2F68024A000CEA05 /* PathTerminalSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B658808E2E61945D002187A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B618AC0F2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */,
+				B618AC0E2F68024A000CEA05 /* PathTerminalSDK in Frameworks */,
+				B618AC102F68024A000CEA05 /* PathCoreModels in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B65880982E61945D002187A3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B658807B2E619459002187A3 = {
+			isa = PBXGroup;
+			children = (
+				B65880862E619459002187A3 /* PathEPOSDemo */,
+				B65880942E61945D002187A3 /* PathEPOSDemoTests */,
+				B658809E2E61945D002187A3 /* PathEPOSDemoUITests */,
+				B65880852E619459002187A3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B65880852E619459002187A3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B65880842E619459002187A3 /* PathEPOSDemo.app */,
+				B65880912E61945D002187A3 /* PathEPOSDemoTests.xctest */,
+				B658809B2E61945D002187A3 /* PathEPOSDemoUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B65880832E619459002187A3 /* PathEPOSDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B65880A52E61945D002187A3 /* Build configuration list for PBXNativeTarget "PathEPOSDemo" */;
+			buildPhases = (
+				B65880802E619459002187A3 /* Sources */,
+				B65880812E619459002187A3 /* Frameworks */,
+				B65880822E619459002187A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B65880862E619459002187A3 /* PathEPOSDemo */,
+			);
+			name = PathEPOSDemo;
+			packageProductDependencies = (
+				B65880B12E61945D002187A3 /* PathTerminalSDK */,
+				B65880B22E61945D002187A3 /* PathEmulatorAdapter */,
+				B65880B32E61945D002187A3 /* PathCoreModels */,
+			);
+			productName = PathEPOSDemo;
+			productReference = B65880842E619459002187A3 /* PathEPOSDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B65880902E61945D002187A3 /* PathEPOSDemoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B65880A82E61945D002187A3 /* Build configuration list for PBXNativeTarget "PathEPOSDemoTests" */;
+			buildPhases = (
+				B658808D2E61945D002187A3 /* Sources */,
+				B658808E2E61945D002187A3 /* Frameworks */,
+				B658808F2E61945D002187A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B65880932E61945D002187A3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B65880942E61945D002187A3 /* PathEPOSDemoTests */,
+			);
+			name = PathEPOSDemoTests;
+			packageProductDependencies = (
+				B65880B12E61945D002187A3 /* PathTerminalSDK */,
+				B65880B22E61945D002187A3 /* PathEmulatorAdapter */,
+				B65880B32E61945D002187A3 /* PathCoreModels */,
+			);
+			productName = PathEPOSDemoTests;
+			productReference = B65880912E61945D002187A3 /* PathEPOSDemoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B658809A2E61945D002187A3 /* PathEPOSDemoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B65880AB2E61945D002187A3 /* Build configuration list for PBXNativeTarget "PathEPOSDemoUITests" */;
+			buildPhases = (
+				B65880972E61945D002187A3 /* Sources */,
+				B65880982E61945D002187A3 /* Frameworks */,
+				B65880992E61945D002187A3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B658809D2E61945D002187A3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B658809E2E61945D002187A3 /* PathEPOSDemoUITests */,
+			);
+			name = PathEPOSDemoUITests;
+			packageProductDependencies = (
+			);
+			productName = PathEPOSDemoUITests;
+			productReference = B658809B2E61945D002187A3 /* PathEPOSDemoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B658807C2E619459002187A3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					B65880832E619459002187A3 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					B65880902E61945D002187A3 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = B65880832E619459002187A3;
+					};
+					B658809A2E61945D002187A3 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = B65880832E619459002187A3;
+					};
+				};
+			};
+			buildConfigurationList = B658807F2E619459002187A3 /* Build configuration list for PBXProject "PathEPOSwithPathSDK" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B658807B2E619459002187A3;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B65880852E619459002187A3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B65880832E619459002187A3 /* PathEPOSDemo */,
+				B65880902E61945D002187A3 /* PathEPOSDemoTests */,
+				B658809A2E61945D002187A3 /* PathEPOSDemoUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B65880822E619459002187A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B658808F2E61945D002187A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B65880992E61945D002187A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B65880802E619459002187A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B658808D2E61945D002187A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B65880972E61945D002187A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B65880932E61945D002187A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B65880832E619459002187A3 /* PathEPOSDemo */;
+			targetProxy = B65880922E61945D002187A3 /* PBXContainerItemProxy */;
+		};
+		B658809D2E61945D002187A3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B65880832E619459002187A3 /* PathEPOSDemo */;
+			targetProxy = B658809C2E61945D002187A3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		B65880A32E61945D002187A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B65880A42E61945D002187A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B65880A62E61945D002187A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Used to connect to the payment terminal.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Used to connect to the payment terminal.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B65880A72E61945D002187A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Used to connect to the payment terminal.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "Used to connect to the payment terminal.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B65880A92E61945D002187A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PathEPOSDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PathEPOSDemo";
+			};
+			name = Debug;
+		};
+		B65880AA2E61945D002187A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PathEPOSDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PathEPOSDemo";
+			};
+			name = Release;
+		};
+		B65880AC2E61945D002187A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = PathEPOSDemo;
+			};
+			name = Debug;
+		};
+		B65880AD2E61945D002187A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = PathEPOSDemo;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B658807F2E619459002187A3 /* Build configuration list for PBXProject "PathEPOSwithPathSDK" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B65880A32E61945D002187A3 /* Debug */,
+				B65880A42E61945D002187A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B65880A52E61945D002187A3 /* Build configuration list for PBXNativeTarget "PathEPOSDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B65880A62E61945D002187A3 /* Debug */,
+				B65880A72E61945D002187A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B65880A82E61945D002187A3 /* Build configuration list for PBXNativeTarget "PathEPOSDemoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B65880A92E61945D002187A3 /* Debug */,
+				B65880AA2E61945D002187A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B65880AB2E61945D002187A3 /* Build configuration list for PBXNativeTarget "PathEPOSDemoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B65880AC2E61945D002187A3 /* Debug */,
+				B65880AD2E61945D002187A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../Path SDK/PathTerminalSDK";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B65880B12E61945D002187A3 /* PathTerminalSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */;
+			productName = PathTerminalSDK;
+		};
+		B65880B22E61945D002187A3 /* PathEmulatorAdapter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */;
+			productName = PathEmulatorAdapter;
+		};
+		B65880B32E61945D002187A3 /* PathCoreModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */;
+			productName = PathCoreModels;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = B658807C2E619459002187A3 /* Project object */;
+}
