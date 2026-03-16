@@ -1,16 +1,19 @@
 import SwiftUI
-
-private let columnSpacing: CGFloat = 12
-private let cardToValueSpacing: CGFloat = 24  // Extra spacing between Card Number and Value
+import PathCoreModels
 
 struct TransactionLogView: View {
-    @StateObject private var ble = BLEUARTManager.shared
+    @EnvironmentObject private var terminal: AppTerminalManager
     @State private var showClearConfirmation = false
     @State private var selectedEntryForRefund: TerminalTransactionLogEntry?
+    @State private var showReceiptSheet = false
+    @State private var receiptToShow: FullReceipt?
+    @State private var loadingReceiptId: UUID?
+
+    private let pathGreen = Color(hex: "#3B9F40")
 
     var body: some View {
         Group {
-            if ble.transactionLog.isEmpty {
+            if terminal.transactionLog.isEmpty {
                 ContentUnavailableView(
                     "No transactions",
                     systemImage: "list.bullet.rectangle",
@@ -18,24 +21,24 @@ struct TransactionLogView: View {
                 )
             } else {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        TransactionLogHeaderRow()
-                            .background(Color(.tertiarySystemGroupedBackground))
-                        Divider()
-                        ForEach(Array(ble.transactionLog.enumerated()), id: \.element.id) { index, entry in
-                            TransactionLogRowView(entry: entry, index: index) {
-                                selectedEntryForRefund = entry
-                            }
-                            Divider()
+                    LazyVStack(spacing: 12) {
+                        ForEach(terminal.transactionLog) { entry in
+                            TransactionCard(
+                                entry: entry,
+                                isLoadingReceipt: loadingReceiptId == entry.id,
+                                onReceipt: { showReceipt(for: entry) },
+                                onRefund: { selectedEntryForRefund = entry }
+                            )
                         }
                     }
+                    .padding()
                 }
                 .background(Color(.systemGroupedBackground))
             }
         }
         .navigationTitle("Transaction Log")
         .toolbar {
-            if !ble.transactionLog.isEmpty {
+            if !terminal.transactionLog.isEmpty {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(role: .destructive, action: { showClearConfirmation = true }) {
                         Label("Clear log", systemImage: "trash")
@@ -44,144 +47,250 @@ struct TransactionLogView: View {
             }
         }
         .confirmationDialog("Clear transaction log?", isPresented: $showClearConfirmation, titleVisibility: .visible) {
-            Button("Clear log", role: .destructive) {
-                ble.clearTransactionLog()
-            }
+            Button("Clear log", role: .destructive) { terminal.clearTransactionLog() }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("All logged transactions will be removed. This cannot be undone.")
         }
         .sheet(item: $selectedEntryForRefund) { entry in
-            RefundView(entry: entry) {
-                selectedEntryForRefund = nil
+            RefundView(entry: entry) { selectedEntryForRefund = nil }
+                .environmentObject(terminal)
+        }
+        .sheet(isPresented: $showReceiptSheet) {
+            if let receipt = receiptToShow {
+                ReceiptView(receipt: receipt, onDismiss: {
+                    showReceiptSheet = false
+                    receiptToShow = nil
+                })
             }
         }
     }
-}
 
-struct TransactionLogHeaderRow: View {
-    var body: some View {
-        HStack(alignment: .center, spacing: columnSpacing) {
-            Text("URN")
-                .frame(minWidth: 90, maxWidth: .infinity, alignment: .leading)
-            Text("Card Number")
-                .frame(minWidth: 100, maxWidth: .infinity, alignment: .leading)
-            Spacer().frame(width: cardToValueSpacing)
-            Text("Value")
-                .frame(minWidth: 64, maxWidth: .infinity, alignment: .leading)
-            Text("Date")
-                .frame(minWidth: 80, maxWidth: .infinity, alignment: .leading)
-            Text("Time")
-                .frame(minWidth: 64, maxWidth: .infinity, alignment: .leading)
-            Text("Status")
-                .frame(minWidth: 72, maxWidth: .infinity, alignment: .leading)
-            Text("Refund")
-                .frame(minWidth: 80, maxWidth: .infinity, alignment: .center)
+    private func showReceipt(for entry: TerminalTransactionLogEntry) {
+        loadingReceiptId = entry.id
+        Task { @MainActor in
+            defer { loadingReceiptId = nil }
+            // Try to get full receipt from terminal; fall back to log entry data
+            if let txnId = entry.transactionId,
+               let data = await terminal.getReceiptData(transactionId: txnId) {
+                receiptToShow = buildReceiptFromData(data, entry: entry)
+            } else {
+                receiptToShow = buildReceiptFromEntry(entry)
+            }
+            showReceiptSheet = true
         }
-        .font(.subheadline)
-        .fontWeight(.semibold)
-        .foregroundColor(.secondary)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+    }
+
+    private func buildReceiptFromData(_ data: ReceiptData, entry: TerminalTransactionLogEntry) -> FullReceipt {
+        let total = Double(entry.amountMinor) / 100.0
+        return FullReceipt(
+            merchantName: "PATH COFFEE LONDON",
+            merchantAddress: "12 Sample Street, London W1A 1AA",
+            orderNumber: entry.urn,
+            tillNumber: "03",
+            cashierName: "—",
+            orderDate: entry.date,
+            lineItems: [ReceiptLineItem(name: entry.type == .refund ? "Card refund" : "Card payment", quantity: 1, unitPrice: total)],
+            subtotal: total / 1.2,
+            vatAmount: total - total / 1.2,
+            total: total,
+            currency: entry.currency,
+            cardReceiptBlock: data.customerReceipt,
+            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"]
+        )
+    }
+
+    private func buildReceiptFromEntry(_ entry: TerminalTransactionLogEntry) -> FullReceipt {
+        let total = Double(entry.amountMinor) / 100.0
+        return FullReceipt(
+            merchantName: "PATH COFFEE LONDON",
+            merchantAddress: "12 Sample Street, London W1A 1AA",
+            orderNumber: entry.urn,
+            tillNumber: "03",
+            cashierName: "—",
+            orderDate: entry.date,
+            lineItems: [ReceiptLineItem(name: entry.type == .refund ? "Card refund" : "Card payment", quantity: 1, unitPrice: total)],
+            subtotal: total / 1.2,
+            vatAmount: total - total / 1.2,
+            total: total,
+            currency: entry.currency,
+            cardReceiptBlock: nil,
+            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"]
+        )
     }
 }
 
-struct TransactionLogRowView: View {
+// MARK: - Transaction card
+
+struct TransactionCard: View {
     let entry: TerminalTransactionLogEntry
-    let index: Int
+    let isLoadingReceipt: Bool
+    let onReceipt: () -> Void
     let onRefund: () -> Void
-    
+
+    private let pathGreen = Color(hex: "#3B9F40")
+    private let redColor   = Color(hex: "#FF5252")
+
+    private var typeColor: Color { entry.type == .sale ? pathGreen : redColor }
+    private var typeLabel: String { entry.type == .sale ? "SALE" : "REFUND" }
+
+    private var statusColor: Color {
+        switch entry.status {
+        case .success:  return pathGreen
+        case .timedOut: return .orange
+        default:        return redColor
+        }
+    }
+    private var statusLabel: String {
+        switch entry.status {
+        case .success:  return "Approved"
+        case .timedOut: return "Timed out"
+        default:        return "Declined"
+        }
+    }
+
     private let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .short
-        return f
+        let f = DateFormatter(); f.dateStyle = .medium; return f
     }()
     private let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.timeStyle = .short
-        return f
+        let f = DateFormatter(); f.timeStyle = .short; return f
     }()
-    
-    private var rowBackground: Color {
-        index.isMultiple(of: 2) ? Color(.secondarySystemGroupedBackground) : Color(.systemBackground)
-    }
-    
+
     var body: some View {
-        HStack(alignment: .center, spacing: columnSpacing) {
-            Text(entry.urn)
-                .frame(minWidth: 90, maxWidth: .infinity, alignment: .leading)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .lineLimit(1)
-            
-            Text(entry.cardMasked)
-                .frame(minWidth: 100, maxWidth: .infinity, alignment: .leading)
-                .font(.subheadline)
-                .lineLimit(1)
-            
-            Spacer().frame(width: cardToValueSpacing)
-            
-            Text(entry.formattedAmount)
-                .frame(minWidth: 64, maxWidth: .infinity, alignment: .leading)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-            
-            Text(dateFormatter.string(from: entry.date))
-                .frame(minWidth: 80, maxWidth: .infinity, alignment: .leading)
-                .font(.subheadline)
-            
-            Text(timeFormatter.string(from: entry.date))
-                .frame(minWidth: 64, maxWidth: .infinity, alignment: .leading)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Text(entry.status.rawValue)
-                .frame(minWidth: 72, maxWidth: .infinity, alignment: .leading)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(entry.status == .success ? Color(hex: "#3B9F40") : Color(hex: "#FF5252"))
-            
-            Group {
-                if entry.type == .sale {
-                    if let refundedAt = entry.refundedAt {
-                        VStack(alignment: .center, spacing: 2) {
-                            Text(dateFormatter.string(from: refundedAt))
-                                .font(.caption)
-                            Text(timeFormatter.string(from: refundedAt))
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(minWidth: 80, maxWidth: .infinity, alignment: .center)
-                    } else {
-                        Button(action: onRefund) {
-                            Text("Refund")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color(hex: "#FF5252"))
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
+        VStack(spacing: 0) {
+            // Main row
+            HStack(alignment: .center, spacing: 16) {
+                // Type badge + amount
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(typeLabel)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(typeColor)
+                        .cornerRadius(6)
+
+                    Text(entry.formattedAmount)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                }
+                .frame(width: 100, alignment: .leading)
+
+                Divider().frame(height: 50)
+
+                // Details
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(dateFormatter.string(from: entry.date))
+                            .font(.subheadline)
+                        Text("·")
+                            .foregroundColor(.secondary)
+                        Text(timeFormatter.string(from: entry.date))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                } else {
-                    Text("—")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 6) {
+                        Image(systemName: entry.isCash ? "banknote" : "creditcard")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(entry.isCash ? "Cash" : entry.cardMasked)
+                            .font(.subheadline)
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "number")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(entry.urn)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                // Status + refunded date
+                VStack(alignment: .trailing, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 8, height: 8)
+                        Text(statusLabel)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(statusColor)
+                    }
+                    if let refundedAt = entry.refundedAt {
+                        Text("Refunded \(dateFormatter.string(from: refundedAt))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
-            .frame(minWidth: 80, maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+
+            // Action buttons — only for successful, non-cash transactions
+            if entry.status == .success && !entry.isCash {
+                Divider()
+                HStack(spacing: 12) {
+                    // Receipt always available
+                    Button(action: onReceipt) {
+                        if isLoadingReceipt {
+                            HStack(spacing: 6) {
+                                ProgressView().scaleEffect(0.8)
+                                Text("Loading…")
+                            }
+                        } else {
+                            Label("Receipt", systemImage: "doc.text")
+                        }
+                    }
+                    .buttonStyle(LogActionButtonStyle(color: pathGreen))
+                    .disabled(isLoadingReceipt)
+
+                    // Refund only for unrefunded sales
+                    if entry.type == .sale && entry.refundedAt == nil {
+                        Button(action: onRefund) {
+                            Label("Refund", systemImage: "arrow.uturn.backward")
+                        }
+                        .buttonStyle(LogActionButtonStyle(color: redColor))
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(rowBackground)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+    }
+}
+
+// MARK: - Button style
+
+struct LogActionButtonStyle: ButtonStyle {
+    let color: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline)
+            .fontWeight(.semibold)
+            .foregroundColor(color)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(color.opacity(0.12))
+            .cornerRadius(8)
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
 #Preview {
     NavigationStack {
         TransactionLogView()
+            .environmentObject(AppTerminalManager(ble: BLEUARTManager.shared))
     }
 }

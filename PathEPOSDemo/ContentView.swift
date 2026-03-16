@@ -15,4 +15,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AppTerminalManager(ble: BLEUARTManager.shared))
 }

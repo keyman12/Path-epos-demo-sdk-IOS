@@ -5,7 +5,7 @@ struct RefundView: View {
     let entry: TerminalTransactionLogEntry
     let onDismiss: () -> Void
     
-    @StateObject private var ble = BLEUARTManager.shared
+    @EnvironmentObject private var terminal: AppTerminalManager
     @State private var showingRefundCard = false
     @Environment(\.dismiss) private var dismiss
     
@@ -69,10 +69,11 @@ struct RefundView: View {
                 VStack(spacing: 12) {
                     Button(action: {
                         if refundMethod == .cash {
-                            ble.recordCashRefund(originalEntry: entry)
+                            terminal.recordCashRefund(originalEntry: entry)
                             dismiss()
                             onDismiss()
                         } else {
+                            terminal.clearForNewTransaction()
                             showingRefundCard = true
                         }
                     }) {
@@ -122,7 +123,8 @@ struct RefundCardView: View {
     let entry: TerminalTransactionLogEntry
     let onDone: () -> Void
     
-    @StateObject private var ble = BLEUARTManager.shared
+    @EnvironmentObject private var terminal: AppTerminalManager
+    @State private var showTimeoutAlert = false
     
     var body: some View {
         VStack(spacing: 16) {
@@ -143,37 +145,25 @@ struct RefundCardView: View {
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array(ble.logs.enumerated()), id: \.offset) { _, line in
-                        Text(line)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-            
+
             Spacer()
         }
         .padding()
         .onAppear {
-            ble.startRefund(amountMinor: entry.amountMinor, currency: entry.currency, originalReqId: entry.reqId, originalEntryId: entry.id)
+            terminal.startRefund(amountMinor: entry.amountMinor, currency: entry.currency, originalReqId: entry.reqId, originalEntryId: entry.id)
+            showTimeoutAlert = terminal.showTimeoutPrompt
         }
-        .alert("Timeout waiting for terminal", isPresented: $ble.showTimeoutPrompt) {
-            Button("Continue", role: .none) { ble.continueWaiting() }
-            Button("Cancel", role: .cancel) { ble.cancelCurrentOperation(); onDone() }
+        .onChange(of: terminal.showTimeoutPrompt) { _, new in showTimeoutAlert = new }
+        .alert("Transaction timed out", isPresented: $showTimeoutAlert) {
+            Button("Continue", role: .none) { terminal.continueWaiting() }
+            Button("Cancel", role: .cancel) { terminal.cancelCurrentOperation(); onDone() }
         } message: {
-            Text("No updates received in 30 seconds.")
+            Text("No response from the terminal in 30 seconds.")
         }
         .safeAreaInset(edge: .bottom) {
-            if ble.lastResult != nil {
-                Button(action: {
-                    onDone()
-                }) {
-                    Text("Complete")
+            if terminal.lastResult != nil {
+                Button(action: onDone) {
+                    Text("Done")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -189,24 +179,52 @@ struct RefundCardView: View {
     
     @ViewBuilder
     private var statusView: some View {
-        VStack(spacing: 8) {
-            switch ble.state {
-            case .idle: Text("Idle…")
-            case .bluetoothUnavailable: Text("Bluetooth unavailable. Enable Bluetooth.")
-            case .scanning: HStack { ProgressView(); Text("Scanning for terminal…") }
-            case .connecting: HStack { ProgressView(); Text("Connecting…") }
-            case .discovering: HStack { ProgressView(); Text("Preparing…") }
+        VStack(spacing: 12) {
+            switch terminal.state {
+            case .idle:
+                HStack { ProgressView(); Text("Initialising…") }
+            case .bluetoothUnavailable:
+                Label("Bluetooth is unavailable. Please enable Bluetooth and try again.", systemImage: "bluetooth.slash")
+                    .foregroundColor(.orange)
+            case .scanning:
+                HStack(spacing: 12) { ProgressView(); Text("Looking for payment terminal…") }
+            case .connecting:
+                HStack(spacing: 12) { ProgressView(); Text("Connecting to payment terminal…") }
             case .ready:
-                if ble.lastAckDate != nil {
-                    Text("ACK received. Refund in progress…")
-                        .fontWeight(.semibold)
+                if terminal.lastResult != nil {
+                    VStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(Color(hex: "#3B9F40"))
+                        Text("Refund Approved")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                    }
+                    .padding(.vertical, 8)
                 } else {
-                    Text("Connected. Waiting for ACK…")
+                    VStack(spacing: 12) {
+                        Image(systemName: "creditcard.and.123")
+                            .font(.system(size: 48))
+                            .foregroundColor(Color(hex: "#3B9F40"))
+                        Text("Waiting for customer to present their card.")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .multilineTextAlignment(.center)
+                        Text("Please tap, insert or swipe.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
                 }
-            case .disconnected: Text("Disconnected.")
-            case .error(let msg): Text("Error: \(msg)")
+            case .disconnected:
+                Label("Payment terminal disconnected.", systemImage: "wifi.slash")
+                    .foregroundColor(.secondary)
+            case .error(let msg):
+                Label("Error: \(msg)", systemImage: "exclamationmark.triangle")
+                    .foregroundColor(.red)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -225,4 +243,5 @@ struct RefundCardView: View {
         ),
         onDismiss: {}
     )
+    .environmentObject(AppTerminalManager(ble: BLEUARTManager.shared))
 }

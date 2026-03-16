@@ -5,6 +5,7 @@ struct PaymentView: View {
     let totalAmount: Double
     let onTransactionComplete: () -> Void
     
+    @EnvironmentObject private var terminal: AppTerminalManager
     @State private var selectedPaymentMethod: PaymentMethod?
     @State private var cashReceived: String = ""
     @State private var showingCashInput = false
@@ -112,6 +113,7 @@ struct PaymentView: View {
                         if selectedPaymentMethod == .cash {
                             showingCashInput = true
                         } else if selectedPaymentMethod == .card {
+                            terminal.clearForNewTransaction()
                             showingCardInput = true
                         }
                     }) {
@@ -141,15 +143,15 @@ struct PaymentView: View {
         .sheet(isPresented: $showingCashInput) {
             CashPaymentView(totalAmount: totalAmount, onComplete: {
                 let minor = Int(round(totalAmount * 100))
-                BLEUARTManager.shared.addCashTransaction(amountMinor: minor, currency: "GBP")
+                terminal.addCashTransaction(amountMinor: minor, currency: "GBP")
                 onTransactionComplete()
                 dismiss()
             })
         }
         .sheet(isPresented: $showingCardInput) {
-            // Convert to minor currency units (e.g., cents/pence)
             let minor = Int(round(totalAmount * 100))
-            CardProcessingView(amountMinor: minor, currency: "GBP") { success, txnId in
+            CardProcessingView(amountMinor: minor, currency: "GBP", cartItems: cartItems, totalAmount: totalAmount) { success, _ in
+                // success && receipt done: cart cleared by ReceiptView "No receipt". Timeout/declined: retain cart.
                 if success {
                     onTransactionComplete()
                 }
@@ -197,6 +199,7 @@ struct CashPaymentView: View {
     let onComplete: () -> Void
     
     @State private var cashReceived: String = ""
+    @FocusState private var isAmountFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     private let primaryColor = Color(hex: "#3B9F40")
@@ -208,93 +211,114 @@ struct CashPaymentView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                // Header
-                VStack(spacing: 16) {
-                    Image(systemName: "banknote.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(primaryColor)
-                    
-                    Text("Cash Payment")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(primaryColor)
-                }
-                
-                // Amount Due
-                VStack(spacing: 8) {
-                    Text("Amount Due")
-                        .font(.title2)
-                        .foregroundColor(.secondary)
-                    
-                    Text("€\(String(format: "%.2f", totalAmount))")
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(primaryColor)
-                }
-                
-                // Cash Input
-                VStack(spacing: 16) {
-                    Text("Amount Received")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    TextField("Enter amount", text: $cashReceived)
-                        .font(.title)
-                        .multilineTextAlignment(.center)
-                        .keyboardType(.decimalPad)
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                        .onChange(of: cashReceived) { newValue in
-                            // Only allow numbers and decimal point
-                            let filtered = newValue.filter { "0123456789.".contains($0) }
-                            if filtered != newValue {
-                                cashReceived = filtered
-                            }
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header
+                        VStack(spacing: 16) {
+                            Image(systemName: "banknote.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(primaryColor)
+                            
+                            Text("Cash Payment")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(primaryColor)
                         }
-                }
-                
-                // Change Calculation
-                if let received = Double(cashReceived), received >= totalAmount {
-                    VStack(spacing: 8) {
-                        Text("Change Due")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
                         
-                        Text("€\(String(format: "%.2f", changeAmount))")
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(.green)
+                        // Amount Due
+                        VStack(spacing: 8) {
+                            Text("Amount Due")
+                                .font(.title2)
+                                .foregroundColor(.secondary)
+                            
+                            Text("€\(String(format: "%.2f", totalAmount))")
+                                .font(.system(size: 48, weight: .bold))
+                                .foregroundColor(primaryColor)
+                        }
+                        
+                        // Cash Input
+                        VStack(spacing: 16) {
+                            Text("Amount Received")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                            
+                            TextField("Enter amount", text: $cashReceived)
+                                .font(.title)
+                                .multilineTextAlignment(.center)
+                                .keyboardType(.decimalPad)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(12)
+                                .focused($isAmountFocused)
+                                .onAppear {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        isAmountFocused = true
+                                    }
+                                }
+                                .onChange(of: cashReceived) { newValue in
+                                    // Only allow numbers and decimal point
+                                    let filtered = newValue.filter { "0123456789.".contains($0) }
+                                    if filtered != newValue {
+                                        cashReceived = filtered
+                                    }
+                                }
+                        }
+                        
+                        // Change Calculation
+                        if let received = Double(cashReceived), received >= totalAmount {
+                            VStack(spacing: 8) {
+                                Text("Change Due")
+                                    .font(.title2)
+                                    .foregroundColor(.secondary)
+                                
+                                Text("€\(String(format: "%.2f", changeAmount))")
+                                    .font(.system(size: 36, weight: .bold))
+                                    .foregroundColor(.green)
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                        }
+                        
+                        Spacer(minLength: 24)
                     }
                     .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
                 }
                 
-                Spacer()
-                
-                // Complete Transaction Button
-                Button(action: {
-                    onComplete()
-                }) {
-                    Text("Complete Transaction")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Double(cashReceived) ?? 0 >= totalAmount ? primaryColor : Color.gray)
-                        .cornerRadius(12)
+                // Complete Transaction Button - fixed at bottom
+                VStack(spacing: 0) {
+                    Divider()
+                    Button(action: {
+                        onComplete()
+                    }) {
+                        Text("Complete Transaction")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Double(cashReceived) ?? 0 >= totalAmount ? primaryColor : Color.gray)
+                            .cornerRadius(12)
+                    }
+                    .disabled(Double(cashReceived) ?? 0 < totalAmount)
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
                 }
-                .disabled(Double(cashReceived) ?? 0 < totalAmount)
-                .padding(.horizontal)
+                .background(Color(.systemBackground))
             }
-            .padding()
             .navigationTitle("Cash Payment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
+                    }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isAmountFocused = false
                     }
                 }
             }
@@ -410,4 +434,5 @@ struct CardPaymentView: View {
 
 #Preview {
     PaymentView(cartItems: [], totalAmount: 0.0) {}
+        .environmentObject(AppTerminalManager(ble: BLEUARTManager.shared))
 }

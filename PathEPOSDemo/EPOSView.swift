@@ -367,5 +367,6 @@ struct CategoryButton: View {
 
 #Preview {
     EPOSView()
+        .environmentObject(AppTerminalManager(ble: BLEUARTManager.shared))
 }
 

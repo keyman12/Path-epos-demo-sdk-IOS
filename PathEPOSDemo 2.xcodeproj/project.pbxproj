@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B618AC0B2F68024A000CEA05 /* PathTerminalSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B12E61945D002187A3 /* PathTerminalSDK */; };
+		B618AC0C2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B22E61945D002187A3 /* PathEmulatorAdapter */; };
+		B618AC0D2F68024A000CEA05 /* PathCoreModels in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B32E61945D002187A3 /* PathCoreModels */; };
+		B618AC0E2F68024A000CEA05 /* PathTerminalSDK in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B12E61945D002187A3 /* PathTerminalSDK */; };
+		B618AC0F2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B22E61945D002187A3 /* PathEmulatorAdapter */; };
+		B618AC102F68024A000CEA05 /* PathCoreModels in Frameworks */ = {isa = PBXBuildFile; productRef = B65880B32E61945D002187A3 /* PathCoreModels */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B65880922E61945D002187A3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +61,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B618AC0D2F68024A000CEA05 /* PathCoreModels in Frameworks */,
+				B618AC0C2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */,
+				B618AC0B2F68024A000CEA05 /* PathTerminalSDK in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,6 +71,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B618AC0F2F68024A000CEA05 /* PathEmulatorAdapter in Frameworks */,
+				B618AC0E2F68024A000CEA05 /* PathTerminalSDK in Frameworks */,
+				B618AC102F68024A000CEA05 /* PathCoreModels in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +127,9 @@
 			);
 			name = PathEPOSDemo;
 			packageProductDependencies = (
+				B65880B12E61945D002187A3 /* PathTerminalSDK */,
+				B65880B22E61945D002187A3 /* PathEmulatorAdapter */,
+				B65880B32E61945D002187A3 /* PathCoreModels */,
 			);
 			productName = PathEPOSDemo;
 			productReference = B65880842E619459002187A3 /* PathEPOSDemo.app */;
@@ -135,6 +153,9 @@
 			);
 			name = PathEPOSDemoTests;
 			packageProductDependencies = (
+				B65880B12E61945D002187A3 /* PathTerminalSDK */,
+				B65880B22E61945D002187A3 /* PathEmulatorAdapter */,
+				B65880B32E61945D002187A3 /* PathCoreModels */,
 			);
 			productName = PathEPOSDemoTests;
 			productReference = B65880912E61945D002187A3 /* PathEPOSDemoTests.xctest */;
@@ -195,6 +216,9 @@
 			);
 			mainGroup = B658807B2E619459002187A3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B65880852E619459002187A3 /* Products */;
 			projectDirPath = "";
@@ -487,8 +511,10 @@
 		B65880AC2E61945D002187A3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemoUITests;
@@ -503,8 +529,10 @@
 		B65880AD2E61945D002187A3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NAYST476EF;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = Path.PathEPOSDemoUITests;
@@ -556,6 +584,31 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../Path SDK/PathTerminalSDK";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B65880B12E61945D002187A3 /* PathTerminalSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */;
+			productName = PathTerminalSDK;
+		};
+		B65880B22E61945D002187A3 /* PathEmulatorAdapter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */;
+			productName = PathEmulatorAdapter;
+		};
+		B65880B32E61945D002187A3 /* PathCoreModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B65880B02E61945D002187A3 /* XCLocalSwiftPackageReference "../../Path SDK/PathTerminalSDK" */;
+			productName = PathCoreModels;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B658807C2E619459002187A3 /* Project object */;
 }

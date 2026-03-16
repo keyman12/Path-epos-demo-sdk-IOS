@@ -4,6 +4,9 @@
 //
 //  Created by David Key on 29/08/2025.
 //
+//  Dual path: default = direct BLE (standalone, for customers with other providers).
+//  Scheme with USE_SDK_TERMINAL = SDK path (for testing SDK integration).
+//
 
 import SwiftUI
 
@@ -20,8 +23,22 @@ struct PathEPOSDemoApp: App {
     
     var body: some Scene {
         WindowGroup {
-            SplashView()
+            RootView()
                 .background(Color(.systemBackground).ignoresSafeArea())
         }
+    }
+}
+
+/// Injects terminal manager: direct BLE (default) or SDK via compile flag.
+private struct RootView: View {
+    #if USE_SDK_TERMINAL
+    @StateObject private var terminal = AppTerminalManager(sdk: SDKTerminalManager())
+    #else
+    @StateObject private var terminal = AppTerminalManager(ble: BLEUARTManager.shared)
+    #endif
+    
+    var body: some View {
+        SplashView()
+            .environmentObject(terminal)
     }
 }

@@ -1,25 +1,26 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @StateObject private var ble = BLEUARTManager.shared
+    @EnvironmentObject private var terminal: AppTerminalManager
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("receipt_include_card_details") private var receiptIncludeCardDetails: Bool = true
     
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Bluetooth Terminal")) {
-                    if !ble.isBluetoothPoweredOn {
+                    if !terminal.isBluetoothPoweredOn {
                         Label("Bluetooth not powered on", systemImage: "exclamationmark.triangle")
                             .foregroundColor(.secondary)
                     }
                     
-                    if ble.isReady {
+                    if terminal.isReady {
                         HStack {
                             Image(systemName: "dot.radiowaves.left.and.right")
                                 .foregroundColor(.green)
                             Text("Connected")
                             Spacer()
-                            Button("Disconnect") { ble.disconnect() }
+                            Button("Disconnect") { terminal.disconnect() }
                         }
                     } else {
                         HStack {
@@ -33,9 +34,20 @@ struct SettingsView: View {
                         DeviceListView()
                     }
                 }
+                Section(header: Text("Receipts")) {
+                    Toggle("Include card payment details", isOn: $receiptIncludeCardDetails)
+                    NavigationLink("Email (SMTP)") {
+                        SMTPConfigView()
+                    }
+                }
                 Section(header: Text("Transactions")) {
                     NavigationLink("Transaction Log") {
                         TransactionLogView()
+                    }
+                }
+                Section(header: Text("Developer")) {
+                    NavigationLink("Diagnostics") {
+                        DeveloperDiagnosticsView()
                     }
                 }
             }
@@ -50,22 +62,22 @@ struct SettingsView: View {
 }
 
 fileprivate struct DeviceListView: View {
-    @StateObject private var ble = BLEUARTManager.shared
+    @EnvironmentObject private var terminal: AppTerminalManager
     
     var body: some View {
         List {
-            if case .bluetoothUnavailable = ble.state {
+            if case .bluetoothUnavailable = terminal.state {
                 Text("Bluetooth unavailable. Enable Bluetooth.")
                     .foregroundColor(.secondary)
             }
-            ForEach(ble.devices) { device in
-                Button(action: { ble.connect(to: device) }) {
+            ForEach(terminal.devices) { device in
+                Button(action: { terminal.connect(to: device) }) {
                     HStack {
                         Text(device.name)
                         Spacer()
-                        if ble.connectingDeviceId == device.id {
+                        if terminal.connectingDeviceId == device.id {
                             ProgressView()
-                        } else if ble.connectedDeviceId == device.id {
+                        } else if terminal.connectedDeviceId == device.id {
                             Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                         }
                         Text("RSSI \(device.rssi)")
@@ -79,13 +91,13 @@ fileprivate struct DeviceListView: View {
         .navigationTitle("Devices")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Scan") { ble.startScan() }
+                Button("Scan") { terminal.startScan() }
             }
         }
-        .onAppear { ble.startScan() }
+        .onAppear { terminal.startScan() }
         .overlay(
             Group {
-                if ble.devices.isEmpty && ble.state == .scanning {
+                if terminal.devices.isEmpty && terminal.state == .scanning {
                     VStack(spacing: 8) {
                         ProgressView()
                         Text("Scanning… Hold near the terminal and ensure it is advertising.")
@@ -101,6 +113,7 @@ fileprivate struct DeviceListView: View {
 
 #Preview {
     SettingsView()
+        .environmentObject(AppTerminalManager(ble: BLEUARTManager.shared))
 }
 
 

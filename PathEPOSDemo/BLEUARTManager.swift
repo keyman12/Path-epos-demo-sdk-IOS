@@ -1,43 +1,34 @@
 import Foundation
 import CoreBluetooth
 import SwiftUI
+import PathCoreModels
 
-final class BLEUARTManager: NSObject, ObservableObject {
+final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManager {
     static let shared = BLEUARTManager()
-    enum ConnectionState: Equatable {
-        case idle
-        case bluetoothUnavailable
-        case scanning
-        case connecting
-        case discovering
-        case ready
-        case disconnected
-        case error(String)
-    }
 
     // Nordic UART Service UUIDs
     private let serviceUUID = CBUUID(string: "6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
     private let rxUUID = CBUUID(string: "6E400002-B5A3-F393-E0A9-E50E24DCCA9E") // Write
     private let txUUID = CBUUID(string: "6E400003-B5A3-F393-E0A9-E50E24DCCA9E") // Notify
 
-    @Published var state: ConnectionState = .idle
+    @Published var state: TerminalConnectionState = .idle
     @Published var isReady: Bool = false
     @Published var isBluetoothPoweredOn: Bool = false
-    @Published var logs: [String] = []
+    @Published private(set) var logEntries: [(date: Date, text: String)] = []
+    var logs: [String] { logEntries.map(\.text) }
     @Published var lastAckDate: Date?
     @Published var lastResult: [String: Any]? // loosely typed for flexibility
     @Published var showTimeoutPrompt: Bool = false
-    @Published var devices: [DeviceItem] = []
+    @Published var devices: [TerminalDeviceItem] = []
     @Published var connectingDeviceId: UUID?
     @Published var connectedDeviceId: UUID?
     @Published var transactionLog: [TerminalTransactionLogEntry] = []
     
-    struct DeviceItem: Identifiable, Hashable {
-        let id: UUID
-        let name: String
-        let rssi: Int
-    }
-
+    var lastError: String? { _lastError }
+    var sdkVersion: String? { nil }
+    var protocolVersion: String? { "0.1" }
+    private var _lastError: String?
+    
     private var central: CBCentralManager!
     private var peripheral: CBPeripheral?
     private var rxCharacteristic: CBCharacteristic?
@@ -50,7 +41,10 @@ final class BLEUARTManager: NSObject, ObservableObject {
 
     private var pendingSale: (amount: Int, currency: String, tip: Int?)?
     private var pendingRefundOriginalEntryId: UUID?
+    private var getReceiptContinuation: CheckedContinuation<ReceiptData?, Never>?
+    private var pendingGetReceiptTxnId: String?
     private let transactionLogKey = "TerminalTransactionLog"
+    private static let logMaxAge: TimeInterval = 7 * 24 * 60 * 60 // 7 days
 
     override init() {
         super.init()
@@ -87,6 +81,7 @@ final class BLEUARTManager: NSObject, ObservableObject {
             type: .sale,
             status: .success,
             reqId: nil,
+            transactionId: nil,
             isCash: true
         )
         transactionLog.insert(entry, at: 0)
@@ -109,6 +104,7 @@ final class BLEUARTManager: NSObject, ObservableObject {
             type: .refund,
             status: .success,
             reqId: nil,
+            transactionId: nil,
             isCash: true
         )
         transactionLog.insert(refundEntry, at: 0)
@@ -116,7 +112,6 @@ final class BLEUARTManager: NSObject, ObservableObject {
     }
 
     func start() {
-        logs.removeAll()
         guard central.state == .poweredOn else {
             state = .bluetoothUnavailable
             return
@@ -153,7 +148,7 @@ final class BLEUARTManager: NSObject, ObservableObject {
         state = .disconnected
     }
 
-    func connect(to device: DeviceItem) {
+    func connect(to device: TerminalDeviceItem) {
         guard let p = peripheralById[device.id] else { return }
         stopScan()
         state = .connecting
@@ -168,7 +163,16 @@ final class BLEUARTManager: NSObject, ObservableObject {
         stop()
     }
 
+    /// Call before presenting sale/refund UI so Complete button is hidden until result arrives.
+    func clearForNewTransaction() {
+        lastResult = nil
+        lastAckDate = nil
+        // Keep logs for diagnostics; add separator for new transaction
+        log("---")
+    }
+
     func startSale(amountMinor: Int, currency: String, tipMinor: Int? = nil) {
+        clearForNewTransaction()
         // If not ready, remember and start connection; send when ready
         guard isReady else {
             pendingSale = (amountMinor, currency, tipMinor)
@@ -189,6 +193,7 @@ final class BLEUARTManager: NSObject, ObservableObject {
     }
 
     func startRefund(amountMinor: Int, currency: String, originalReqId: String? = nil, originalEntryId: UUID? = nil) {
+        clearForNewTransaction()
         guard isReady else {
             log("Not connected. Connect to terminal first to process refund.")
             return
@@ -213,11 +218,14 @@ final class BLEUARTManager: NSObject, ObservableObject {
         log("Continuing to wait for terminal…")
     }
 
+    /// Cancel the current operation (timeout, etc.) but keep the BLE connection.
+    /// Call disconnect() separately if you want to disconnect.
     func cancelCurrentOperation() {
         timeoutTimer?.invalidate()
+        timeoutTimer = nil
         showTimeoutPrompt = false
         log("Operation cancelled by user.")
-        stop()
+        // Do NOT call stop() - keep connection so user can try another transaction
     }
 
     private func sendJSONLine(_ object: [String: Any]) {
@@ -302,17 +310,32 @@ final class BLEUARTManager: NSObject, ObservableObject {
                 } else if let type = dict["type"] as? String, type == "result" {
                     timeoutTimer?.invalidate()
                     showTimeoutPrompt = false
+                    if let cmd = dict["cmd"] as? String, cmd == "GetReceipt" {
+                        if let cont = getReceiptContinuation {
+                            getReceiptContinuation = nil
+                            let receipt = parseGetReceiptResponse(dict, transactionId: pendingGetReceiptTxnId ?? "")
+                            DispatchQueue.main.async { cont.resume(returning: receipt) }
+                        }
+                        pendingGetReceiptTxnId = nil
+                        return
+                    }
                     lastResult = dict
+                    log("✓ Result received: \(dict["status"] as? String ?? "?")")
                     // Append to transaction log when we receive a result from the terminal
                     if let cmd = dict["cmd"] as? String,
                        let amount = dict["amount"] as? Int,
                        let currency = dict["currency"] as? String {
                         let txnType: TerminalTransactionType = cmd == "Refund" ? .refund : .sale
                         let reqId = dict["req_id"] as? String
-                        let cardLastFour = String(format: "%04d", Int.random(in: 0...9999))
+                        let cardLastFour = (dict["card_last_four"] as? String) ?? String(format: "%04d", Int.random(in: 0...9999))
                         let statusStr = (dict["status"] as? String)?.lowercased() ?? ""
-                        let txnStatus: TerminalTransactionStatus = (statusStr == "approved" || statusStr == "success") ? .success : .decline
+                        let txnStatus: TerminalTransactionStatus = {
+                            if statusStr == "approved" || statusStr == "success" { return .success }
+                            if statusStr == "timed_out" { return .timedOut }
+                            return .decline
+                        }()
                         let urn = "URN-\(UUID().uuidString.prefix(8).uppercased())"
+                        let txnId = dict["txn_id"] as? String
                         let entry = TerminalTransactionLogEntry(
                             urn: urn,
                             date: Date(),
@@ -322,6 +345,7 @@ final class BLEUARTManager: NSObject, ObservableObject {
                             type: txnType,
                             status: txnStatus,
                             reqId: reqId,
+                            transactionId: txnId,
                             isCash: false
                         )
                         transactionLog.insert(entry, at: 0)
@@ -354,7 +378,72 @@ final class BLEUARTManager: NSObject, ObservableObject {
     }
 
     private func log(_ message: String) {
-        logs.append(message)
+        pruneLogsIfNeeded()
+        logEntries.append((date: Date(), text: message))
+        if logEntries.count > 500 {
+            logEntries.removeFirst(logEntries.count - 500)
+        }
+    }
+
+    private func pruneLogsIfNeeded() {
+        let cutoff = Date().addingTimeInterval(-Self.logMaxAge)
+        logEntries.removeAll { $0.date < cutoff }
+    }
+
+    func getLogsForCopy() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return logEntries.map { "\(formatter.string(from: $0.date))  \($0.text)" }.joined(separator: "\n")
+    }
+
+    func clearLogs() {
+        logEntries.removeAll()
+    }
+
+    func pruneLogs() {
+        pruneLogsIfNeeded()
+    }
+
+    func getReceiptData(transactionId: String) async -> ReceiptData? {
+        guard isReady else { return nil }
+        return await withCheckedContinuation { cont in
+            getReceiptContinuation = cont
+            pendingGetReceiptTxnId = transactionId
+            let message: [String: Any] = [
+                "cmd": "GetReceipt",
+                "req_id": UUID().uuidString,
+                "args": ["txn_id": transactionId]
+            ]
+            sendJSONLine(message)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+                guard let self = self, let c = self.getReceiptContinuation else { return }
+                self.getReceiptContinuation = nil
+                self.pendingGetReceiptTxnId = nil
+                c.resume(returning: nil)
+            }
+        }
+    }
+
+    private func parseGetReceiptResponse(_ dict: [String: Any], transactionId: String) -> ReceiptData? {
+        guard (dict["status"] as? String)?.lowercased() == "success",
+              let merchantDict = dict["merchant_receipt"] as? [String: Any],
+              let customerDict = dict["customer_receipt"] as? [String: Any] else { return nil }
+        do {
+            let mData = try JSONSerialization.data(withJSONObject: merchantDict)
+            let cData = try JSONSerialization.data(withJSONObject: customerDict)
+            let merchant = try JSONDecoder().decode(CardReceiptFields.self, from: mData)
+            let customer = try JSONDecoder().decode(CardReceiptFields.self, from: cData)
+            return ReceiptData(
+                transactionId: transactionId,
+                requestId: nil,
+                merchantReceipt: merchant,
+                customerReceipt: customer,
+                timestampUtc: merchant.timestamp
+            )
+        } catch {
+            log("GetReceipt parse error: \(error.localizedDescription)")
+            return nil
+        }
     }
 }
 
@@ -379,7 +468,7 @@ extension BLEUARTManager: CBCentralManagerDelegate {
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         let name = peripheral.name ?? "Unnamed"
         peripheralById[peripheral.identifier] = peripheral
-        let item = DeviceItem(id: peripheral.identifier, name: name, rssi: RSSI.intValue)
+        let item = TerminalDeviceItem(id: peripheral.identifier, name: name, rssi: RSSI.intValue)
         if let idx = devices.firstIndex(where: { $0.id == item.id }) {
             devices[idx] = item
         } else {
@@ -388,7 +477,7 @@ extension BLEUARTManager: CBCentralManagerDelegate {
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        state = .discovering
+        state = .connecting
         peripheral.discoverServices([serviceUUID])
         log("Connected. Discovering services…")
     }

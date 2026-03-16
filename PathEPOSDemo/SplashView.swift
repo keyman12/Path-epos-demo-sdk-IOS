@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SplashView: View {
+    @EnvironmentObject private var terminal: AppTerminalManager
     @State private var isActive = false
     @State private var logoScale: CGFloat = 0.8
     @State private var logoOpacity: Double = 0.0
@@ -45,6 +46,7 @@ struct SplashView: View {
         }
         .fullScreenCover(isPresented: $isActive) {
             ContentView()
+                .environmentObject(terminal)
         }
     }
 }
@@ -53,4 +55,5 @@ struct SplashView: View {
 
 #Preview {
     SplashView()
+        .environmentObject(AppTerminalManager(ble: BLEUARTManager.shared))
 }
