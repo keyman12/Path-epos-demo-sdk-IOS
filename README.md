@@ -1,6 +1,8 @@
-# Path EPOS – iPad Demo
+# Path EPOS – iPad demo (PathTerminalSDK)
 
-A SwiftUI EPOS demo for iPad with integration to the **Path POS Emulator** (Pico) over Bluetooth Low Energy (BLE). Supports sales and refunds, with a transaction log and cash or card payment.
+A SwiftUI EPOS demo for **iPad** that integrates with the **Path POS Emulator** (Raspberry Pi Pico) **only through [PathTerminalSDK](https://github.com/keyman12/Path-terminal-sdk)**. The app does **not** use direct CoreBluetooth / Nordic UART calls for the supported card flow — it uses **`PathTerminal`** and **`BLEPathTerminalAdapter`** from the SDK.
+
+Supports **sales** and **refunds**, a **transaction log**, and **cash or card** payment.
 
 ## Features
 
@@ -10,48 +12,55 @@ A SwiftUI EPOS demo for iPad with integration to the **Path POS Emulator** (Pico
 - **Payment** – Cash or Card; scrollable transaction summary
 - **Branding** – Path logo, primary color #3B9F40
 
-### BLE & Path POS Emulator (Pico)
-- **Card payments** – Connect to the Pico terminal via BLE; send Sale with amount/currency; receive ACK and result
-- **Refunds** – From the Transaction Log, tap Refund → Select Refund Method → Card sends a Refund command to the Pico (same JSON format as Sale, `cmd: "Refund"`)
-- **Message format** – Newline‑delimited JSON: `{"req_id":"...","args":{"amount":<minor>,"currency":"GBP"},"cmd":"Sale"|"Refund"}\n`
+### Path SDK & emulator (Pico)
+- **Card payments** – **Settings → Manage Devices**: scan and connect to **Path POS Emulator**; **Sale** is sent via the SDK with amount/currency; ACK and result drive the UI
+- **Refunds** – Transaction Log → **Refund** → card path sends **Refund** with the same JSON envelope style as Sale (`cmd: "Refund"`)
+- **Wire format** – Newline-delimited JSON (handled inside the SDK’s BLE adapter), e.g.  
+  `{"req_id":"...","args":{"amount":<minor>,"currency":"GBP"},"cmd":"Sale"|"Refund"}\n`
 
 ### Transaction Log
-- **Settings → Transaction Log** – List of all terminal and cash transactions
-- **Columns** – URN, Card Number (masked or “Cash”), Value (£), Date, Time, Status (Success/Decline), Refund button
-- **Cash** – Cash payments are logged with “Cash” in the Card column (no Pico involved)
-- **Card** – Sales/refunds from the Pico are logged with masked card (e.g. **** **** **** 1234) and Status from the terminal result
-- **Refund** – Tap Refund on a sale row to open the Refund screen and send a Refund to the Pico when Card is selected
-- **Clear log** – Toolbar option to clear the transaction log
+- **Settings → Transaction Log** – Terminal and cash transactions
+- **Columns** – URN, Card Number (masked or “Cash”), Value (£), Date, Time, Status, Refund
+- **Cash** – Logged with “Cash” in the Card column (no Pico)
+- **Card** – Terminal sales/refunds with masked PAN and status from the terminal result
+- **Clear log** – Toolbar option
 
 ## Build
 
-1. Open `PathEPOSDemo.xcodeproj` (or `PathEPOSDemo 2.xcodeproj`) in Xcode 15+
-2. Target: **iPadOS 17+**
-3. Run on iPad simulator or device
+1. **Add the Swift package** (if not already resolved):  
+   **File → Add Package Dependencies…** →  
+   `https://github.com/keyman12/Path-terminal-sdk`  
+   Add **PathTerminalSDK** (and related products) to the app target.
+2. Open **`PathEPOSDemo.xcodeproj`** in Xcode 15+ (or the duplicate project if you use it locally).
+3. Target: **iPadOS 17+**; run on simulator or device.
 
-## Structure
+## Structure (high level)
 
-- `PathEPOSDemo/` – App source (SwiftUI views, models)
-- `BLEUARTManager.swift` – BLE client, Nordic UART Service, JSON send/receive, transaction log persistence
-- `Models.swift` – Cart, inventory, `TerminalTransactionLogEntry` (URN, amount, type, status, isCash)
-- `TransactionLogView.swift` – Transaction log list and Refund entry point
-- `RefundView.swift` – Refund screen and RefundCardView (sends Refund to Pico)
-- `CardProcessingView.swift` – Card payment flow (sends Sale to Pico)
-- `PaymentView.swift` – Payment method selection; cash completion logs via `addCashTransaction`
-- `Assets.xcassets/` – App and item icons
+| Area | Purpose |
+|------|---------|
+| `PathEPOSDemo/` | SwiftUI views, models, assets |
+| `SDKTerminalManager.swift` | Wraps **`PathTerminal`** + **`BLEPathTerminalAdapter`**; connection state, logging, transaction log persistence |
+| `TerminalConnectionManager.swift` / **Settings** | Device scan, connect, last-terminal hints |
+| `Models.swift` | Cart, inventory, `TerminalTransactionLogEntry`, etc. |
+| `CardProcessingView.swift` / `RefundView.swift` / `PaymentView.swift` | Payment flows using the SDK |
 
-## BLE Setup
+Legacy or experimental BLE helpers may still exist in the tree for diagnostics; the **supported integration path** is **PathTerminalSDK only**.
 
-1. Ensure the Path POS Emulator (Pico) is powered on and advertising.
-2. In the app: **Settings** (gear) → **Manage Devices** → **Scan** → select **Path POS Emulator**.
-3. After connection, card payments and refunds use the connected terminal.
+## BLE setup
 
-## Version Notes
+1. Flash/run **[PosEmulator](https://github.com/keyman12/PosEmulator)** on the Pico; it should advertise as **Path POS Emulator**.
+2. In the app: **Settings** → **Manage Devices** → **Scan** → select the emulator.
+3. After the SDK reports connected, card payments and refunds use that link.
 
-- **Transaction log** – URN, Status, Cash vs card, alternating row shading, clear log
-- **Refund flow** – Refund screen (Select Refund Method), RefundCardView sends Refund to Pico
-- **Cash transactions** – Logged in transaction log with “Cash” in Card column
-- **BLE** – JSON over Nordic UART; Sale/Refund; ACK/result handling; chunked writes for MTU
+## Related repositories
+
+| Repo | Role |
+|------|------|
+| [Path-terminal-sdk](https://github.com/keyman12/Path-terminal-sdk) | Swift package, docs, schemas |
+| [PosEmulator](https://github.com/keyman12/PosEmulator) | Pico firmware |
+| **This repo** | iPad EPOS demo |
+
+See also **[Path-terminal-sdk DEVELOPMENT.md](https://github.com/keyman12/Path-terminal-sdk/blob/main/DEVELOPMENT.md)** for the full three-repo layout.
 
 ---
 © Path – Demo use only.
