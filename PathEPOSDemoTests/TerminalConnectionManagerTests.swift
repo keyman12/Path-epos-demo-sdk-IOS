@@ -7,6 +7,7 @@
 
 import Testing
 import SwiftUI
+import PathCoreModels
 @testable import PathEPOSDemo
 
 @Suite("TerminalConnectionManager")
@@ -66,6 +67,9 @@ struct TerminalConnectionManagerTests {
         ble.clearTransactionLog()
         ble.clearLogs()
         ble.pruneLogs()
+        #expect(ble.integrationKind == "native_ble")
+        let bundle = ble.buildSupportBundleSnapshot()
+        #expect(bundle.integration == "native_ble")
         #expect(true)
     }
 
@@ -99,6 +103,9 @@ struct TerminalConnectionManagerTests {
         sdk.pruneLogs()
         #expect(sdk.sdkVersion == "0.1.0")
         #expect(sdk.protocolVersion == "0.1")
+        #expect(sdk.integrationKind == "path_sdk")
+        let bundle = sdk.buildSupportBundleSnapshot()
+        #expect(bundle.integration == "path_sdk")
     }
 
     @Test("SDKTerminalManager addCashTransaction adds to log")

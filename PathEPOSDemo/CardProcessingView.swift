@@ -17,6 +17,7 @@ struct CardProcessingView: View {
     @State private var receiptToShow: FullReceipt?
     @State private var pendingTxnIdForReceipt: String?
     @State private var hasHandledLastResult = false
+    @State private var notConnectedOnAppear = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -38,7 +39,10 @@ struct CardProcessingView: View {
         }
         .padding()
         .onAppear {
-            terminal.startSale(amountMinor: amountMinor, currency: currency, tipMinor: nil)
+            notConnectedOnAppear = !terminal.isReady
+            if terminal.isReady {
+                terminal.startSale(amountMinor: amountMinor, currency: currency, tipMinor: nil)
+            }
             showTimeoutAlert = terminal.showTimeoutPrompt
             hasHandledLastResult = false
         }
@@ -182,7 +186,22 @@ struct CardProcessingView: View {
         VStack(spacing: 12) {
             switch terminal.state {
             case .idle:
-                HStack { ProgressView(); Text("Initialising…") }
+                if notConnectedOnAppear {
+                    VStack(spacing: 8) {
+                        Image(systemName: "antenna.radiowaves.left.and.right.slash")
+                            .font(.system(size: 40))
+                            .foregroundColor(.secondary)
+                        Text("No terminal connected")
+                            .font(.headline)
+                        Text("Go to Settings → Manage Devices to connect a payment terminal.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.vertical, 8)
+                } else {
+                    HStack { ProgressView(); Text("Initialising…") }
+                }
             case .bluetoothUnavailable:
                 Label("Bluetooth is unavailable. Please enable Bluetooth and try again.", systemImage: "bluetooth.slash")
                     .foregroundColor(.orange)

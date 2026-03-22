@@ -7,12 +7,21 @@
 
 import SwiftUI
 import UIKit
+import PathCoreModels
 
 struct DeveloperDiagnosticsView: View {
     @EnvironmentObject private var terminal: AppTerminalManager
     @State private var showClearFirstConfirm = false
     @State private var showClearSecondConfirm = false
     @State private var showCopiedFeedback = false
+    @State private var bundleCopyError: String?
+    @State private var statusReqIdOverride = ""
+
+    private var xcodeConsoleTips: String {
+        """
+        Xcode console: Cmd+Shift+Y for the debug area; set output to “All Output”. Use Run with Build Configuration = Debug or mirrored NSLog lines are omitted. Filter for PathTerminal (SDK scheme) or BLEUART (direct BLE). In-app Logs below always work; the Path SDK only talks BLE — this app mirrors to the console in DEBUG.
+        """
+    }
 
     private var stateDescription: String {
         switch terminal.state {
@@ -29,6 +38,7 @@ struct DeveloperDiagnosticsView: View {
     var body: some View {
         Form {
             Section(header: Text("Versions")) {
+                LabeledContent("Integration", value: terminal.integrationKind)
                 LabeledContent("SDK", value: terminal.sdkVersion ?? "—")
                 LabeledContent("Protocol", value: terminal.protocolVersion ?? "—")
             }
@@ -37,8 +47,60 @@ struct DeveloperDiagnosticsView: View {
                 LabeledContent("State", value: stateDescription)
                 LabeledContent("Ready", value: terminal.isReady ? "Yes" : "No")
                 LabeledContent("Bluetooth", value: terminal.isBluetoothPoweredOn ? "On" : "Off")
+                Text(xcodeConsoleTips)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section(header: Text("Transaction status (debug)")) {
+                Text("Calls GetTransactionStatus using the last Sale/Refund wire req_id, or paste one below. Response lines appear in Logs.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                if let last = terminal.lastWireRequestId {
+                    LabeledContent("Last req_id", value: last)
+                } else {
+                    Text("No wire request id yet — start a Sale or Refund first.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                TextField("Optional req_id override", text: $statusReqIdOverride)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button {
+                    let trimmed = statusReqIdOverride.trimmingCharacters(in: .whitespacesAndNewlines)
+                    Task {
+                        await terminal.queryTransactionStatus(requestId: trimmed.isEmpty ? nil : trimmed)
+                    }
+                } label: {
+                    Label("Query transaction status", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .disabled(!terminal.isReady)
             }
             
+            Section(header: Text("Support bundle")) {
+                Text("Redacted JSON for support email. No full card numbers.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button {
+                    bundleCopyError = nil
+                    do {
+                        let text = try terminal.exportSupportBundlePrettyJSON()
+                        UIPasteboard.general.string = text
+                        showCopiedFeedback = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showCopiedFeedback = false }
+                    } catch {
+                        bundleCopyError = error.localizedDescription
+                    }
+                } label: {
+                    Label("Copy support bundle (JSON)", systemImage: "square.and.arrow.up.on.square")
+                }
+                if let bundleCopyError {
+                    Text(bundleCopyError)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+            }
+
             if let err = terminal.lastError {
                 Section(header: Text("Last Error")) {
                     Text(err)

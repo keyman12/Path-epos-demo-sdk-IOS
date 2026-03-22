@@ -123,7 +123,7 @@ struct EPOSView: View {
                                                 .font(.title2)
                                                 .fontWeight(.semibold)
                                             Spacer()
-                                            Text("€\(String(format: "%.2f", cartTotal))")
+                                            Text("£\(String(format: "%.2f", cartTotal))")
                                                 .font(.title2)
                                                 .fontWeight(.bold)
                                                 .foregroundColor(Color(hex: "#FF5252"))
@@ -244,7 +244,7 @@ struct InventoryItemCard: View {
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                     
-                    Text("€\(String(format: "%.2f", item.price))")
+                    Text("£\(String(format: "%.2f", item.price))")
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.black)
@@ -295,7 +295,7 @@ struct CartItemRow: View {
             Spacer()
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text("€\(String(format: "%.2f", cartItem.totalPrice))")
+                Text("£\(String(format: "%.2f", cartItem.totalPrice))")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundColor(.black)

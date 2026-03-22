@@ -150,7 +150,7 @@ struct RefundCardView: View {
         }
         .padding()
         .onAppear {
-            terminal.startRefund(amountMinor: entry.amountMinor, currency: entry.currency, originalReqId: entry.reqId, originalEntryId: entry.id)
+            terminal.startRefund(amountMinor: entry.amountMinor, currency: entry.currency, originalTransactionId: entry.transactionId, originalReqId: entry.reqId, originalEntryId: entry.id)
             showTimeoutAlert = terminal.showTimeoutPrompt
         }
         .onChange(of: terminal.showTimeoutPrompt) { _, new in showTimeoutAlert = new }

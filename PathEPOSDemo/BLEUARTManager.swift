@@ -1,7 +1,10 @@
 import Foundation
 import CoreBluetooth
+import OSLog
 import SwiftUI
 import PathCoreModels
+
+private let bleTerminalConsoleLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "PathEPOS", category: "BLEUART")
 
 final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManager {
     static let shared = BLEUARTManager()
@@ -23,7 +26,9 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
     @Published var connectingDeviceId: UUID?
     @Published var connectedDeviceId: UUID?
     @Published var transactionLog: [TerminalTransactionLogEntry] = []
-    
+    /// Wire `req_id` of the last Sale/Refund JSON sent (for GetTransactionStatus in diagnostics).
+    @Published private(set) var lastWireRequestId: String? = nil
+
     var lastError: String? { _lastError }
     var sdkVersion: String? { nil }
     var protocolVersion: String? { "0.1" }
@@ -146,6 +151,7 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
         txCharacteristic = nil
         isReady = false
         state = .disconnected
+        lastWireRequestId = nil
     }
 
     func connect(to device: TerminalDeviceItem) {
@@ -184,15 +190,17 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
             "currency": currency
         ]
         if let tipMinor = tipMinor { args["tip"] = tipMinor }
+        let reqId = UUID().uuidString
+        lastWireRequestId = reqId
         let message: [String: Any] = [
             "cmd": "Sale",
-            "req_id": UUID().uuidString,
+            "req_id": reqId,
             "args": args
         ]
         sendJSONLine(message)
     }
 
-    func startRefund(amountMinor: Int, currency: String, originalReqId: String? = nil, originalEntryId: UUID? = nil) {
+    func startRefund(amountMinor: Int, currency: String, originalTransactionId: String? = nil, originalReqId: String? = nil, originalEntryId: UUID? = nil) {
         clearForNewTransaction()
         guard isReady else {
             log("Not connected. Connect to terminal first to process refund.")
@@ -204,9 +212,11 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
             "currency": currency
         ]
         if let originalReqId = originalReqId { args["original_req_id"] = originalReqId }
+        let reqId = UUID().uuidString
+        lastWireRequestId = reqId
         let message: [String: Any] = [
             "cmd": "Refund",
-            "req_id": UUID().uuidString,
+            "req_id": reqId,
             "args": args
         ]
         sendJSONLine(message)
@@ -319,6 +329,12 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
                         pendingGetReceiptTxnId = nil
                         return
                     }
+                    if dict["cmd"] as? String == "GetTransactionStatus" {
+                        lastResult = dict
+                        let txn = dict["txn_status"] as? String ?? dict["status"] as? String ?? "?"
+                        log("✓ GetTransactionStatus: \(txn)")
+                        return
+                    }
                     lastResult = dict
                     log("✓ Result received: \(dict["status"] as? String ?? "?")")
                     // Append to transaction log when we receive a result from the terminal
@@ -383,6 +399,11 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
         if logEntries.count > 500 {
             logEntries.removeFirst(logEntries.count - 500)
         }
+        bleTerminalConsoleLogger.notice("\(message, privacy: .public)")
+        #if DEBUG
+        print("[BLEUART] \(message)")
+        NSLog("[BLEUART] %@", message)
+        #endif
     }
 
     private func pruneLogsIfNeeded() {
@@ -444,6 +465,45 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
             log("GetReceipt parse error: \(error.localizedDescription)")
             return nil
         }
+    }
+
+    var integrationKind: String { "native_ble" }
+
+    func queryTransactionStatus(requestId: String?) async {
+        let rid = requestId ?? lastWireRequestId
+        guard let rid else {
+            log("GetTransactionStatus: no request id — run a Sale or Refund first.")
+            return
+        }
+        guard isReady else {
+            log("GetTransactionStatus: not connected.")
+            return
+        }
+        let message: [String: Any] = [
+            "cmd": "GetTransactionStatus",
+            "req_id": UUID().uuidString,
+            "args": ["req_id": rid]
+        ]
+        sendJSONLine(message)
+        log("Sent GetTransactionStatus for original req_id=\(rid)")
+    }
+
+    func buildSupportBundleSnapshot() -> SupportBundleSnapshotV1 {
+        let formatter = ISO8601DateFormatter()
+        let recent = logEntries.suffix(120).map { "\(formatter.string(from: $0.date))  \($0.text)" }
+        return SupportBundleSnapshotV1(
+            generatedAtUtc: formatter.string(from: Date()),
+            integration: integrationKind,
+            sdkVersion: sdkVersion,
+            protocolVersion: protocolVersion,
+            connectionState: state.diagnosticsLabel,
+            isReady: isReady,
+            isBluetoothPoweredOn: isBluetoothPoweredOn,
+            lastError: lastError,
+            logLineCount: logEntries.count,
+            recentLogLines: Array(recent),
+            transactionLogCount: transactionLog.count
+        )
     }
 }
 
