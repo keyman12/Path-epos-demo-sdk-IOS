@@ -50,7 +50,7 @@ protocol TerminalConnectionManager: ObservableObject {
     func disconnect()
     
     func startSale(amountMinor: Int, currency: String, tipMinor: Int?)
-    func startRefund(amountMinor: Int, currency: String, originalReqId: String?, originalEntryId: UUID?)
+    func startRefund(amountMinor: Int, currency: String, originalTransactionId: String?, originalReqId: String?, originalEntryId: UUID?)
     
     func continueWaiting()
     func cancelCurrentOperation()
@@ -75,4 +75,36 @@ protocol TerminalConnectionManager: ObservableObject {
     func clearLogs()
     /// Remove log entries older than 7 days (e.g. call when opening diagnostics).
     func pruneLogs()
+
+    /// `path_sdk` (PathTerminalSDK) or `native_ble` (direct BLE stack).
+    var integrationKind: String { get }
+
+    /// Redacted JSON snapshot for support (no full card numbers).
+    func buildSupportBundleSnapshot() -> SupportBundleSnapshotV1
+
+    /// Last Sale/Refund wire `req_id` (for GetTransactionStatus). Nil until a payment is started.
+    var lastWireRequestId: String? { get }
+
+    /// Calls GetTransactionStatus for `requestId`, or the last wire `req_id` if nil. Logs outcome to developer log.
+    func queryTransactionStatus(requestId: String?) async
+}
+
+extension TerminalConnectionManager {
+    func exportSupportBundlePrettyJSON() throws -> String {
+        try SupportBundleSnapshotV1.encodePrettyString(buildSupportBundleSnapshot())
+    }
+}
+
+extension TerminalConnectionState {
+    var diagnosticsLabel: String {
+        switch self {
+        case .idle: return "idle"
+        case .bluetoothUnavailable: return "bluetooth_unavailable"
+        case .scanning: return "scanning"
+        case .connecting: return "connecting"
+        case .ready: return "ready"
+        case .disconnected: return "disconnected"
+        case .error(let msg): return "error: \(msg)"
+        }
+    }
 }

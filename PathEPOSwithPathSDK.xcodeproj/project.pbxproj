@@ -36,6 +36,7 @@
 		B65880842E619459002187A3 /* PathEPOSDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PathEPOSDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B65880912E61945D002187A3 /* PathEPOSDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PathEPOSDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B658809B2E61945D002187A3 /* PathEPOSDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PathEPOSDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B6EEE6772F6EF36200EBD40D /* PathEPOSDemo.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = PathEPOSDemo.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -90,6 +91,7 @@
 		B658807B2E619459002187A3 = {
 			isa = PBXGroup;
 			children = (
+				B6EEE6772F6EF36200EBD40D /* PathEPOSDemo.xctestplan */,
 				B65880862E619459002187A3 /* PathEPOSDemo */,
 				B65880942E61945D002187A3 /* PathEPOSDemoTests */,
 				B658809E2E61945D002187A3 /* PathEPOSDemoUITests */,

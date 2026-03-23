@@ -7,6 +7,7 @@
 
 import Testing
 import SwiftUI
+import PathCoreModels
 @testable import PathEPOSDemo
 
 @Suite("TerminalConnectionManager")
@@ -56,13 +57,18 @@ struct TerminalConnectionManagerTests {
         _ = sdk.lastError
         _ = sdk.sdkVersion
         _ = sdk.protocolVersion
+        _ = sdk.lastWireRequestId
         _ = sdk.getLogsForCopy()
         sdk.clearForNewTransaction()
         sdk.clearTransactionLog()
         sdk.clearLogs()
         sdk.pruneLogs()
-        #expect(sdk.sdkVersion == "0.1.0")
+        #expect(sdk.sdkVersion == "0.1.1")
         #expect(sdk.protocolVersion == "0.1")
+        #expect(sdk.integrationKind == "path_sdk")
+        let bundle = sdk.buildSupportBundleSnapshot()
+        #expect(bundle.integration == "path_sdk")
+        #expect(bundle.bundleVersion == "1")
     }
 
     @Test("SDKTerminalManager addCashTransaction adds to log")

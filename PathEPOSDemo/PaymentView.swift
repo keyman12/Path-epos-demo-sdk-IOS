@@ -46,11 +46,11 @@ struct PaymentView: View {
                                         Text(cartItem.item.name)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                         
-                                        Text("\(cartItem.quantity) × €\(String(format: "%.2f", cartItem.item.price))")
+                                        Text("\(cartItem.quantity) × £\(String(format: "%.2f", cartItem.item.price))")
                                             .foregroundColor(.secondary)
                                             .frame(maxWidth: .infinity, alignment: .center)
                                         
-                                        Text("€\(String(format: "%.2f", cartItem.totalPrice))")
+                                        Text("£\(String(format: "%.2f", cartItem.totalPrice))")
                                             .fontWeight(.semibold)
                                             .frame(maxWidth: .infinity, alignment: .trailing)
                                     }
@@ -64,7 +64,7 @@ struct PaymentView: View {
                                         .font(.title2)
                                         .fontWeight(.bold)
                                     Spacer()
-                                    Text("€\(String(format: "%.2f", totalAmount))")
+                                    Text("£\(String(format: "%.2f", totalAmount))")
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(primaryColor)
@@ -231,7 +231,7 @@ struct CashPaymentView: View {
                                 .font(.title2)
                                 .foregroundColor(.secondary)
                             
-                            Text("€\(String(format: "%.2f", totalAmount))")
+                            Text("£\(String(format: "%.2f", totalAmount))")
                                 .font(.system(size: 48, weight: .bold))
                                 .foregroundColor(primaryColor)
                         }
@@ -271,7 +271,7 @@ struct CashPaymentView: View {
                                     .font(.title2)
                                     .foregroundColor(.secondary)
                                 
-                                Text("€\(String(format: "%.2f", changeAmount))")
+                                Text("£\(String(format: "%.2f", changeAmount))")
                                     .font(.system(size: 36, weight: .bold))
                                     .foregroundColor(.green)
                             }
@@ -359,7 +359,7 @@ struct CardPaymentView: View {
                         .font(.title2)
                         .foregroundColor(.secondary)
                     
-                    Text("€\(String(format: "%.2f", totalAmount))")
+                    Text("£\(String(format: "%.2f", totalAmount))")
                         .font(.system(size: 48, weight: .bold))
                         .foregroundColor(primaryColor)
                 }

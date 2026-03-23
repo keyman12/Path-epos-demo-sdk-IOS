@@ -42,7 +42,9 @@ final class AppTerminalManager: ObservableObject, TerminalConnectionManager {
     var lastError: String? { wrapped.lastError }
     var sdkVersion: String? { wrapped.sdkVersion }
     var protocolVersion: String? { wrapped.protocolVersion }
-    
+    var integrationKind: String { wrapped.integrationKind }
+    var lastWireRequestId: String? { wrapped.lastWireRequestId }
+
     func start() { wrapped.start() }
     func startScan() { wrapped.startScan() }
     func stopScan() { wrapped.stopScan() }
@@ -53,8 +55,8 @@ final class AppTerminalManager: ObservableObject, TerminalConnectionManager {
     func startSale(amountMinor: Int, currency: String, tipMinor: Int?) {
         wrapped.startSale(amountMinor: amountMinor, currency: currency, tipMinor: tipMinor)
     }
-    func startRefund(amountMinor: Int, currency: String, originalReqId: String?, originalEntryId: UUID?) {
-        wrapped.startRefund(amountMinor: amountMinor, currency: currency, originalReqId: originalReqId, originalEntryId: originalEntryId)
+    func startRefund(amountMinor: Int, currency: String, originalTransactionId: String?, originalReqId: String?, originalEntryId: UUID?) {
+        wrapped.startRefund(amountMinor: amountMinor, currency: currency, originalTransactionId: originalTransactionId, originalReqId: originalReqId, originalEntryId: originalEntryId)
     }
     
     func continueWaiting() { wrapped.continueWaiting() }
@@ -76,4 +78,12 @@ final class AppTerminalManager: ObservableObject, TerminalConnectionManager {
     func getLogsForCopy() -> String { wrapped.getLogsForCopy() }
     func clearLogs() { wrapped.clearLogs() }
     func pruneLogs() { wrapped.pruneLogs() }
+
+    func buildSupportBundleSnapshot() -> SupportBundleSnapshotV1 {
+        wrapped.buildSupportBundleSnapshot()
+    }
+
+    func queryTransactionStatus(requestId: String?) async {
+        await wrapped.queryTransactionStatus(requestId: requestId)
+    }
 }

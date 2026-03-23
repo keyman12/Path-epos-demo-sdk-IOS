@@ -86,6 +86,7 @@ fileprivate struct DeviceListView: View {
                     }
                 }
                 .buttonStyle(PlainButtonStyle())
+                .disabled(terminal.connectingDeviceId != nil)
             }
         }
         .navigationTitle("Devices")
@@ -94,7 +95,12 @@ fileprivate struct DeviceListView: View {
                 Button("Scan") { terminal.startScan() }
             }
         }
-        .onAppear { terminal.startScan() }
+        // Re-running scan after connect used to call discoverDevices() while connected and drop the link (~1s).
+        .onAppear {
+            if !terminal.isReady {
+                terminal.startScan()
+            }
+        }
         .overlay(
             Group {
                 if terminal.devices.isEmpty && terminal.state == .scanning {

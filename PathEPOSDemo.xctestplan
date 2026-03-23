@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "1E759BC6-661C-41B0-B916-2831E9D9471C",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:PathEPOSwithPathSDK.xcodeproj",
+      "identifier" : "B65880832E619459002187A3",
+      "name" : "PathEPOSDemo"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:PathEPOSwithPathSDK.xcodeproj",
+        "identifier" : "B65880902E61945D002187A3",
+        "name" : "PathEPOSDemoTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:PathEPOSwithPathSDK.xcodeproj",
+        "identifier" : "B658809A2E61945D002187A3",
+        "name" : "PathEPOSDemoUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

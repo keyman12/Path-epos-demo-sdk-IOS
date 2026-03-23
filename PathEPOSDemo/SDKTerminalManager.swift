@@ -7,10 +7,13 @@
 //
 
 import Foundation
+import OSLog
 import SwiftUI
 import PathTerminalSDK
 import PathCoreModels
 import PathEmulatorAdapter
+
+private let terminalConsoleLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "PathEPOS", category: "Terminal")
 
 @MainActor
 final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
@@ -32,24 +35,66 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
     @Published var connectingDeviceId: UUID?
     @Published var connectedDeviceId: UUID?
     @Published var transactionLog: [TerminalTransactionLogEntry] = []
-    
+    /// Wire `req_id` of the last started Sale/Refund (for GetTransactionStatus in diagnostics).
+    @Published private(set) var lastWireRequestId: String? = nil
+
     var lastError: String?
-    var sdkVersion: String? { "0.1.0" }
+    var sdkVersion: String? { "0.1.1" }
     var protocolVersion: String? { "0.1" }
     
     private var pendingRefundOriginalEntryId: UUID?
     private let transactionLogKey = "TerminalTransactionLog"
+    private static let lastTerminalDeviceIdKey = "PathLastConnectedTerminalDeviceId"
     private static let logMaxAge: TimeInterval = 7 * 24 * 60 * 60 // 7 days
 
     init() {
-        let ad = BLEPathTerminalAdapter(sdkVersion: "0.1.0", adapterVersion: "0.1.0")
+        let ad = BLEPathTerminalAdapter(sdkVersion: "0.1.1", adapterVersion: "0.1.1")
         self.adapter = ad
         self.terminal = PathTerminal(adapter: ad)
         ad.onLog = { [weak self] msg in
             Task { @MainActor in self?.log(msg) }
         }
+        ad.onBluetoothStateChange = { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isBluetoothPoweredOn = ad.isBluetoothPoweredOn
+                if !self.isBluetoothPoweredOn {
+                    self.state = .bluetoothUnavailable
+                    self.isReady = false
+                } else if case .bluetoothUnavailable = self.state {
+                    self.state = self.terminal.isConnected ? .ready : .idle
+                }
+            }
+        }
+        isBluetoothPoweredOn = ad.isBluetoothPoweredOn
         loadTransactionLog()
         startEventTask()
+        if let saved = UserDefaults.standard.string(forKey: Self.lastTerminalDeviceIdKey) {
+            log("Hint: last terminal id \(saved). BLE does not auto-reconnect after app restart — open Settings → Manage Devices.")
+        }
+        #if DEBUG
+        NSLog("[PathTerminal] DEBUG build — SDKTerminalManager ready (see Diagnostics for Xcode console tips).")
+        #endif
+    }
+
+    var integrationKind: String { "path_sdk" }
+
+    func buildSupportBundleSnapshot() -> SupportBundleSnapshotV1 {
+        let formatter = ISO8601DateFormatter()
+        let recent = logEntries.suffix(120).map { "\(formatter.string(from: $0.date))  \($0.text)" }
+        return SupportBundleSnapshotV1(
+            generatedAtUtc: formatter.string(from: Date()),
+            integration: integrationKind,
+            sdkVersion: sdkVersion,
+            protocolVersion: protocolVersion,
+            connectionState: state.diagnosticsLabel,
+            isReady: isReady,
+            isBluetoothPoweredOn: isBluetoothPoweredOn,
+            lastError: lastError,
+            logLineCount: logEntries.count,
+            recentLogLines: Array(recent),
+            transactionLogCount: transactionLog.count
+        )
     }
     
     private func loadTransactionLog() {
@@ -69,6 +114,30 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         if logEntries.count > 500 {
             logEntries.removeFirst(logEntries.count - 500)
         }
+        terminalConsoleLogger.notice("\(message, privacy: .public)")
+        #if DEBUG
+        print("[PathTerminal] \(message)")
+        NSLog("[PathTerminal] %@", message)
+        #endif
+    }
+
+    private func logConnectionEvent(_ conn: ConnectionState) {
+        let line: String
+        switch conn {
+        case .idle:
+            line = "event connection: idle (adapter.isConnected=\(terminal.isConnected))"
+        case .scanning:
+            line = "event connection: scanning"
+        case .connecting:
+            line = "event connection: connecting"
+        case .connected:
+            line = "event connection: connected"
+        case .disconnected:
+            line = "event connection: disconnected"
+        case .error(let msg):
+            line = "event connection: error \(msg)"
+        }
+        log(line)
     }
 
     private func pruneLogsIfNeeded() {
@@ -95,9 +164,19 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
             for await event in terminal.events {
                 switch event {
                 case .connectionStateChanged(let conn):
+                    logConnectionEvent(conn)
                     switch conn {
-                    case .idle: state = .idle; isReady = false
-                    case .scanning: state = .scanning
+                    case .idle:
+                        if terminal.isConnected {
+                            state = .ready
+                            isReady = true
+                        } else {
+                            state = .idle
+                            isReady = false
+                        }
+                    case .scanning:
+                        state = .scanning
+                        if terminal.isConnected { isReady = true }
                     case .connecting: state = .connecting
                     case .connected: state = .ready; isReady = true; lastAckDate = Date()
                     case .disconnected: state = .disconnected; isReady = false; connectedDeviceId = nil
@@ -137,7 +216,12 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
                 let devicesFound = try await terminal.discoverDevices()
                 await MainActor.run {
                     devices = devicesFound.map { TerminalDeviceItem(id: $0.id, name: $0.name, rssi: $0.rssi) }
-                    state = .idle
+                    if terminal.isConnected {
+                        state = .ready
+                        isReady = true
+                    } else {
+                        state = .idle
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -150,7 +234,12 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
     }
     
     func stopScan() {
-        state = .idle
+        if terminal.isConnected {
+            state = .ready
+            isReady = true
+        } else {
+            state = .idle
+        }
     }
     
     func stop() {
@@ -159,6 +248,7 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         currentSaleTask = nil
         currentRefundTask = nil
         showTimeoutPrompt = false
+        lastWireRequestId = nil
         Task {
             try? await terminal.disconnect()
             await MainActor.run {
@@ -184,6 +274,7 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
                     isReady = true
                     lastAckDate = Date()
                     log("Connected.")
+                    UserDefaults.standard.set(device.id.uuidString, forKey: Self.lastTerminalDeviceIdKey)
                 }
             } catch {
                 await MainActor.run {
@@ -212,7 +303,8 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
             log("Not connected. Connect to terminal first.")
             return
         }
-        let envelope = RequestEnvelope.create(sdkVersion: "0.1.0", adapterVersion: "0.1.0")
+        let envelope = RequestEnvelope.create(sdkVersion: "0.1.1", adapterVersion: "0.1.1")
+        lastWireRequestId = envelope.requestId
         let request = TransactionRequest.sale(amountMinor: amountMinor, currency: currency, tipMinor: tipMinor, envelope: envelope)
         log("Sending Sale request…")
         lastAckDate = Date()
@@ -221,6 +313,13 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
                 let result = try await terminal.sale(request: request)
                 await MainActor.run {
                     applyResult(result, cmd: "Sale")
+                }
+            } catch let pathError as PathError {
+                await MainActor.run {
+                    lastError = pathError.message
+                    lastResult = resultDict(error: pathError.message, cmd: "Sale", amountMinor: amountMinor, currency: currency)
+                    let recov = pathError.recoverable ? " [recoverable]" : ""
+                    log("Sale error\(recov) [\(pathError.code)]: \(pathError.message)")
                 }
             } catch {
                 await MainActor.run {
@@ -232,15 +331,22 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         }
     }
     
-    func startRefund(amountMinor: Int, currency: String, originalReqId: String? = nil, originalEntryId: UUID? = nil) {
+    func startRefund(amountMinor: Int, currency: String, originalTransactionId: String? = nil, originalReqId: String? = nil, originalEntryId: UUID? = nil) {
         clearForNewTransaction()
         guard isReady else {
             log("Not connected. Connect to terminal first.")
             return
         }
         pendingRefundOriginalEntryId = originalEntryId
-        let envelope = RequestEnvelope.create(sdkVersion: "0.1.0", adapterVersion: "0.1.0")
-        let request = TransactionRequest.refund(amountMinor: amountMinor, currency: currency, originalRequestId: originalReqId, envelope: envelope)
+        let envelope = RequestEnvelope.create(sdkVersion: "0.1.1", adapterVersion: "0.1.1")
+        lastWireRequestId = envelope.requestId
+        let request = TransactionRequest.refund(
+            amountMinor: amountMinor,
+            currency: currency,
+            originalTransactionId: originalTransactionId,
+            originalRequestId: originalReqId,
+            envelope: envelope
+        )
         log("Sending Refund request…")
         lastAckDate = Date()
         currentRefundTask = Task {
@@ -248,6 +354,13 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
                 let result = try await terminal.refund(request: request)
                 await MainActor.run {
                     applyResult(result, cmd: "Refund")
+                }
+            } catch let pathError as PathError {
+                await MainActor.run {
+                    lastError = pathError.message
+                    lastResult = resultDict(error: pathError.message, cmd: "Refund", amountMinor: amountMinor, currency: currency)
+                    let recov = pathError.recoverable ? " [recoverable]" : ""
+                    log("Refund error\(recov) [\(pathError.code)]: \(pathError.message)")
                 }
             } catch {
                 await MainActor.run {
@@ -265,6 +378,7 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         case .approved, .refunded: statusStr = "approved"
         case .declined: statusStr = "declined"
         case .timedOut: statusStr = "timed_out"
+        case .failed: statusStr = "failed"
         default: statusStr = "declined"
         }
         lastResult = [
@@ -275,7 +389,11 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
             "currency": result.currency,
             "card_last_four": result.cardLastFour ?? "0000"
         ]
-        log("✓ Result received: \(statusStr)")
+        if let err = result.error {
+            log("✓ Result: \(statusStr) — \(err.message)")
+        } else {
+            log("✓ Result: \(statusStr)")
+        }
         
         let txnStatus: TerminalTransactionStatus = {
             if result.state == .approved || result.state == .refunded { return .success }
@@ -327,7 +445,19 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         currentSaleTask = nil
         currentRefundTask = nil
         showTimeoutPrompt = false
-        log("Operation cancelled by user.")
+        log("Cancelling in-flight operation…")
+        Task {
+            do {
+                try await terminal.cancelActiveTransaction()
+                await MainActor.run { log("Cancel sent to terminal.") }
+            } catch let pathError as PathError {
+                await MainActor.run {
+                    log("Cancel: [\(pathError.code.rawValue)] \(pathError.message)")
+                }
+            } catch {
+                await MainActor.run { log("Cancel: \(error.localizedDescription)") }
+            }
+        }
     }
     
     func addCashTransaction(amountMinor: Int, currency: String) {
@@ -380,6 +510,28 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         } catch {
             log("Receipt fetch failed: \(error.localizedDescription)")
             return nil
+        }
+    }
+
+    func queryTransactionStatus(requestId: String?) async {
+        let rid = requestId ?? lastWireRequestId
+        guard let rid else {
+            log("GetTransactionStatus: no request id — run a Sale or Refund first.")
+            return
+        }
+        guard isReady else {
+            log("GetTransactionStatus: not connected.")
+            return
+        }
+        log("GetTransactionStatus… req_id=\(rid)")
+        do {
+            let result = try await terminal.getTransactionStatus(requestId: rid)
+            let stateLabel = String(describing: result.state)
+            log("GetTransactionStatus: state=\(stateLabel) txn_id=\(result.transactionId ?? "—")")
+        } catch let pathError as PathError {
+            log("GetTransactionStatus: [\(pathError.code.rawValue)] \(pathError.message)")
+        } catch {
+            log("GetTransactionStatus: \(error.localizedDescription)")
         }
     }
 }
