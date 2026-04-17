@@ -54,6 +54,41 @@ struct FullReceipt {
     /// Card receipt block from terminal (sealed); nil when "Include card details" is off.
     let cardReceiptBlock: CardReceiptFields?
     let footerLines: [String]
+    /// Customer-added tip, in the receipt's currency (e.g. £1.95). Zero when no tip.
+    /// When > 0 the receipt renders an extra "Tip" row between Subtotal and Total.
+    let tipAmount: Double
+
+    init(
+        merchantName: String,
+        merchantAddress: String,
+        orderNumber: String,
+        tillNumber: String,
+        cashierName: String,
+        orderDate: Date,
+        lineItems: [ReceiptLineItem],
+        subtotal: Double,
+        vatAmount: Double,
+        total: Double,
+        currency: String,
+        cardReceiptBlock: CardReceiptFields?,
+        footerLines: [String],
+        tipAmount: Double = 0
+    ) {
+        self.merchantName = merchantName
+        self.merchantAddress = merchantAddress
+        self.orderNumber = orderNumber
+        self.tillNumber = tillNumber
+        self.cashierName = cashierName
+        self.orderDate = orderDate
+        self.lineItems = lineItems
+        self.subtotal = subtotal
+        self.vatAmount = vatAmount
+        self.total = total
+        self.currency = currency
+        self.cardReceiptBlock = cardReceiptBlock
+        self.footerLines = footerLines
+        self.tipAmount = tipAmount
+    }
 
     static func formatDate(_ date: Date) -> String {
         let f = DateFormatter()
@@ -101,7 +136,7 @@ struct TerminalTransactionLogEntry: Identifiable, Codable {
     let urn: String                // unique reference number, system-generated at start of log
     let date: Date
     let cardLastFour: String       // e.g. "1234" for card; empty for cash
-    let amountMinor: Int           // amount in minor units (pence)
+    let amountMinor: Int           // total amount in minor units (pence) — incl. tip if any
     let currency: String
     let type: TerminalTransactionType
     let status: TerminalTransactionStatus  // Success or Decline
@@ -109,8 +144,28 @@ struct TerminalTransactionLogEntry: Identifiable, Codable {
     let transactionId: String?     // txn_id from terminal (for GetReceipt)
     let isCash: Bool               // true = cash transaction (no card); display "Cash"
     let refundedAt: Date?          // when this sale was refunded (nil = not refunded)
+    /// Base (pre-tip) amount in minor units. `nil` for legacy entries from before
+    /// tipping support landed, in which case callers can fall back to `amountMinor`.
+    let baseAmountMinor: Int?
+    /// Tip the customer added, in minor units. `nil` or `0` = no tip.
+    let tipAmountMinor: Int?
 
-    init(id: UUID = UUID(), urn: String, date: Date = Date(), cardLastFour: String, amountMinor: Int, currency: String, type: TerminalTransactionType, status: TerminalTransactionStatus, reqId: String?, transactionId: String? = nil, isCash: Bool = false, refundedAt: Date? = nil) {
+    init(
+        id: UUID = UUID(),
+        urn: String,
+        date: Date = Date(),
+        cardLastFour: String,
+        amountMinor: Int,
+        currency: String,
+        type: TerminalTransactionType,
+        status: TerminalTransactionStatus,
+        reqId: String?,
+        transactionId: String? = nil,
+        isCash: Bool = false,
+        refundedAt: Date? = nil,
+        baseAmountMinor: Int? = nil,
+        tipAmountMinor: Int? = nil
+    ) {
         self.id = id
         self.urn = urn
         self.date = date
@@ -123,20 +178,33 @@ struct TerminalTransactionLogEntry: Identifiable, Codable {
         self.transactionId = transactionId
         self.isCash = isCash
         self.refundedAt = refundedAt
+        self.baseAmountMinor = baseAmountMinor
+        self.tipAmountMinor = tipAmountMinor
     }
-    
+
     /// Display in log: "Cash" for cash transactions, else "**** **** **** 1234"
     var cardMasked: String { isCash ? "Cash" : "**** **** **** \(cardLastFour)" }
     var amountPounds: Double { Double(amountMinor) / 100.0 }
     var formattedAmount: String { "£\(String(format: "%.2f", amountPounds))" }
 
+    /// Convenience — true when this entry has a non-zero customer tip.
+    var hasTip: Bool { (tipAmountMinor ?? 0) > 0 }
+    /// Tip amount in major units (pounds). Zero when no tip.
+    var tipPounds: Double { Double(tipAmountMinor ?? 0) / 100.0 }
+    var formattedTip: String { "£\(String(format: "%.2f", tipPounds))" }
+
     /// Returns a copy of this entry with `refundedAt` set (for updating the log when a sale is refunded).
     func withRefundedAt(_ date: Date) -> TerminalTransactionLogEntry {
-        TerminalTransactionLogEntry(id: id, urn: urn, date: self.date, cardLastFour: cardLastFour, amountMinor: amountMinor, currency: currency, type: type, status: status, reqId: reqId, transactionId: transactionId, isCash: isCash, refundedAt: date)
+        TerminalTransactionLogEntry(
+            id: id, urn: urn, date: self.date, cardLastFour: cardLastFour,
+            amountMinor: amountMinor, currency: currency, type: type, status: status,
+            reqId: reqId, transactionId: transactionId, isCash: isCash, refundedAt: date,
+            baseAmountMinor: baseAmountMinor, tipAmountMinor: tipAmountMinor
+        )
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, urn, date, cardLastFour, amountMinor, currency, type, status, reqId, transactionId, isCash, refundedAt
+        case id, urn, date, cardLastFour, amountMinor, currency, type, status, reqId, transactionId, isCash, refundedAt, baseAmountMinor, tipAmountMinor
     }
 
     init(from decoder: Decoder) throws {
@@ -153,6 +221,9 @@ struct TerminalTransactionLogEntry: Identifiable, Codable {
         transactionId = try c.decodeIfPresent(String.self, forKey: .transactionId)
         isCash = try c.decodeIfPresent(Bool.self, forKey: .isCash) ?? false
         refundedAt = try c.decodeIfPresent(Date.self, forKey: .refundedAt)
+        // Tip fields added after v0.1.1 — older persisted entries won't have them.
+        baseAmountMinor = try c.decodeIfPresent(Int.self, forKey: .baseAmountMinor)
+        tipAmountMinor = try c.decodeIfPresent(Int.self, forKey: .tipAmountMinor)
     }
 }
 

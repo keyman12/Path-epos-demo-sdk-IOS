@@ -49,7 +49,14 @@ protocol TerminalConnectionManager: ObservableObject {
     func connect(to device: TerminalDeviceItem)
     func disconnect()
     
-    func startSale(amountMinor: Int, currency: String, tipMinor: Int?)
+    /// Start a sale.
+    ///
+    /// - `tipMinor`: pre-entered tip amount in minor units (legacy path — EPOS
+    ///   already knows the tip). Usually `nil`.
+    /// - `promptForTip`: when `true` the terminal asks the *customer* to pick a
+    ///   tip before the card tap (emulator wire v1.1 feature). The tip lands
+    ///   in the result's `tipAmountMinor` / `tipPercentX10` fields.
+    func startSale(amountMinor: Int, currency: String, tipMinor: Int?, promptForTip: Bool)
     func startRefund(amountMinor: Int, currency: String, originalTransactionId: String?, originalReqId: String?, originalEntryId: UUID?)
     
     func continueWaiting()

@@ -34,7 +34,8 @@ struct ReceiptView: View {
             total: receipt.total,
             currency: receipt.currency,
             cardReceiptBlock: nil,
-            footerLines: receipt.footerLines
+            footerLines: receipt.footerLines,
+            tipAmount: receipt.tipAmount
         )
     }
 
@@ -182,6 +183,11 @@ struct ReceiptContentView: View {
 
                 totalRow("Subtotal", receipt.subtotal)
                 totalRow("VAT", receipt.vatAmount)
+                // Tip row only renders when a tip was actually added — no clutter
+                // on cash or tip-off sales.
+                if receipt.tipAmount > 0 {
+                    totalRow("Tip", receipt.tipAmount)
+                }
                 HStack(spacing: 4) {
                     Text("TOTAL")
                         .font(.headline)

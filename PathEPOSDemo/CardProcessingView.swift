@@ -10,7 +10,9 @@ struct CardProcessingView: View {
 
     @EnvironmentObject private var terminal: AppTerminalManager
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("allow_tipping") private var allowTipping: Bool = true
     @State private var showTimeoutAlert = false
+    @State private var showCustomerTimeoutAlert = false
     @State private var showDeclinedAlert = false
     @State private var declinedMessage: String = ""
     @State private var showReceiptSheet = false
@@ -41,7 +43,7 @@ struct CardProcessingView: View {
         .onAppear {
             notConnectedOnAppear = !terminal.isReady
             if terminal.isReady {
-                terminal.startSale(amountMinor: amountMinor, currency: currency, tipMinor: nil)
+                startSaleWithCurrentSettings()
             }
             showTimeoutAlert = terminal.showTimeoutPrompt
             hasHandledLastResult = false
@@ -60,6 +62,20 @@ struct CardProcessingView: View {
             }
         } message: {
             Text("No response from the terminal in 30 seconds. Your cart has been kept so you can try again.")
+        }
+        .alert("Customer didn't respond", isPresented: $showCustomerTimeoutAlert) {
+            // Retry: re-send the same sale (cart is untouched, same amount).
+            Button("Try again") {
+                hasHandledLastResult = false
+                startSaleWithCurrentSettings()
+            }
+            Button("Cancel", role: .cancel) {
+                hasHandledLastResult = true
+                onDone(false, nil)
+                dismiss()
+            }
+        } message: {
+            Text("The customer didn't pick a tip option in time. You can try the sale again or cancel and return to the cart.")
         }
         .alert("Payment declined", isPresented: $showDeclinedAlert) {
             Button("OK") {
@@ -92,6 +108,17 @@ struct CardProcessingView: View {
         }
     }
 
+    /// Called on appear and when the cashier hits "Try again" after a customer timeout.
+    /// Reads the current "Allow tipping" setting at the moment the sale starts.
+    private func startSaleWithCurrentSettings() {
+        terminal.startSale(
+            amountMinor: amountMinor,
+            currency: currency,
+            tipMinor: nil,
+            promptForTip: allowTipping
+        )
+    }
+
     private func handleResult(_ result: [String: Any]) {
         let status = (result["status"] as? String)?.lowercased() ?? ""
         let txnId = result["txn_id"] as? String ?? result["req_id"] as? String
@@ -115,6 +142,15 @@ struct CardProcessingView: View {
             return
         }
 
+        // Customer walked away from the tip prompt — soft-recoverable.
+        // Offer Try again / Cancel via its own alert rather than treating
+        // as a generic decline or timeout.
+        if status == "customer_timeout" {
+            hasHandledLastResult = true  // consume this result; Try again re-sets the flag
+            showCustomerTimeoutAlert = true
+            return
+        }
+
         if status == "timed_out" {
             showTimeoutAlert = true
             return
@@ -125,15 +161,32 @@ struct CardProcessingView: View {
         showDeclinedAlert = true
     }
 
+    /// Pull tip/base breakdown from the last result dict so the receipt can
+    /// show "Subtotal + Tip = Total". When the terminal didn't return a
+    /// breakdown (old firmware, or no tip), tipMinor defaults to 0 and the
+    /// receipt renders without a tip row.
+    private func tipBreakdownFromResult() -> (baseMinor: Int, tipMinor: Int) {
+        let baseMinor = terminal.lastResult?["base_amount"] as? Int
+        let tipMinor = terminal.lastResult?["tip_amount"] as? Int ?? 0
+        let totalMinor = terminal.lastResult?["amount"] as? Int ?? amountMinor
+        return (baseMinor ?? (totalMinor - tipMinor), tipMinor)
+    }
+
     private func buildFullReceipt(receiptData: ReceiptData) -> FullReceipt {
-        let total = totalAmount ?? (Double(receiptData.merchantReceipt.amount) / 100.0)
+        let (baseMinor, tipMinor) = tipBreakdownFromResult()
+        let totalMinor = baseMinor + tipMinor
+        let totalFromTerminal = Double(totalMinor) / 100.0
+        // Cart sums drive the VAT breakdown (VAT is on the pre-tip amount);
+        // the tip sits on top of the full cart total.
+        let cartTotal = totalAmount ?? Double(baseMinor) / 100.0
         let lineItems: [ReceiptLineItem] = (cartItems ?? []).map {
             ReceiptLineItem(name: $0.item.name, quantity: $0.quantity, unitPrice: $0.item.price)
         }
-        let subtotal = lineItems.isEmpty ? total : lineItems.map(\.lineTotal).reduce(0, +)
+        let subtotal = lineItems.isEmpty ? cartTotal : lineItems.map(\.lineTotal).reduce(0, +)
         let vatRate = 0.20
         let subtotalExVat = subtotal / (1 + vatRate)
         let vat = subtotal - subtotalExVat
+        let tip = Double(tipMinor) / 100.0
         return FullReceipt(
             merchantName: "PATH COFFEE LONDON",
             merchantAddress: "12 Sample Street, London W1A 1AA",
@@ -141,26 +194,30 @@ struct CardProcessingView: View {
             tillNumber: "03",
             cashierName: "Sam",
             orderDate: Date(),
-            lineItems: lineItems.isEmpty ? [ReceiptLineItem(name: "Card payment", quantity: 1, unitPrice: total)] : lineItems,
+            lineItems: lineItems.isEmpty ? [ReceiptLineItem(name: "Card payment", quantity: 1, unitPrice: cartTotal)] : lineItems,
             subtotal: subtotalExVat,
             vatAmount: vat,
-            total: total,
+            total: totalFromTerminal,
             currency: receiptData.merchantReceipt.currency,
             cardReceiptBlock: receiptData.customerReceipt,
-            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"]
+            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"],
+            tipAmount: tip
         )
     }
 
     private func buildFullReceiptWithoutTerminalReceipt() -> FullReceipt {
-        let amountMinor = terminal.lastResult?["amount"] as? Int ?? Int((totalAmount ?? 0) * 100)
-        let total = totalAmount ?? Double(amountMinor) / 100.0
+        let (baseMinor, tipMinor) = tipBreakdownFromResult()
+        let totalMinor = baseMinor + tipMinor
+        let totalFromTerminal = Double(totalMinor) / 100.0
+        let cartTotal = totalAmount ?? Double(baseMinor) / 100.0
         let lineItems: [ReceiptLineItem] = (cartItems ?? []).map {
             ReceiptLineItem(name: $0.item.name, quantity: $0.quantity, unitPrice: $0.item.price)
         }
-        let subtotal = lineItems.isEmpty ? total : lineItems.map(\.lineTotal).reduce(0, +)
+        let subtotal = lineItems.isEmpty ? cartTotal : lineItems.map(\.lineTotal).reduce(0, +)
         let vatRate = 0.20
         let subtotalExVat = subtotal / (1 + vatRate)
         let vat = subtotal - subtotalExVat
+        let tip = Double(tipMinor) / 100.0
         return FullReceipt(
             merchantName: "PATH COFFEE LONDON",
             merchantAddress: "12 Sample Street, London W1A 1AA",
@@ -168,13 +225,14 @@ struct CardProcessingView: View {
             tillNumber: "03",
             cashierName: "Sam",
             orderDate: Date(),
-            lineItems: lineItems.isEmpty ? [ReceiptLineItem(name: "Card payment", quantity: 1, unitPrice: total)] : lineItems,
+            lineItems: lineItems.isEmpty ? [ReceiptLineItem(name: "Card payment", quantity: 1, unitPrice: cartTotal)] : lineItems,
             subtotal: subtotalExVat,
             vatAmount: vat,
-            total: total,
+            total: totalFromTerminal,
             currency: currency,
-            cardReceiptBlock: CardReceiptFields.demoPlaceholder(amountMinor: amountMinor, currency: currency),
-            footerLines: ["Returns accepted within 14 days", "Thank you for your visit"]
+            cardReceiptBlock: CardReceiptFields.demoPlaceholder(amountMinor: totalMinor, currency: currency),
+            footerLines: ["Returns accepted within 14 days", "Thank you for your visit"],
+            tipAmount: tip
         )
     }
     

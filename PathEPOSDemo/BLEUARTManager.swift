@@ -177,7 +177,7 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
         log("---")
     }
 
-    func startSale(amountMinor: Int, currency: String, tipMinor: Int? = nil) {
+    func startSale(amountMinor: Int, currency: String, tipMinor: Int? = nil, promptForTip: Bool = false) {
         clearForNewTransaction()
         // If not ready, remember and start connection; send when ready
         guard isReady else {
@@ -190,6 +190,8 @@ final class BLEUARTManager: NSObject, ObservableObject, TerminalConnectionManage
             "currency": currency
         ]
         if let tipMinor = tipMinor { args["tip"] = tipMinor }
+        // Emulator wire v1.1 — reference BLE path; most flows use SDKTerminalManager.
+        if promptForTip { args["prompt_for_tip"] = true }
         let reqId = UUID().uuidString
         lastWireRequestId = reqId
         let message: [String: Any] = [

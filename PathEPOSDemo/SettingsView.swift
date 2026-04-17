@@ -4,7 +4,12 @@ struct SettingsView: View {
     @EnvironmentObject private var terminal: AppTerminalManager
     @Environment(\.dismiss) private var dismiss
     @AppStorage("receipt_include_card_details") private var receiptIncludeCardDetails: Bool = true
-    
+    /// When on, each Sale asks the terminal to show the tip-selection screen
+    /// before the card tap. When off, sales go straight to tap (the old flow).
+    /// Read at the moment the cashier tips Pay — toggling mid-sale has no
+    /// effect on an in-flight transaction.
+    @AppStorage("allow_tipping") private var allowTipping: Bool = true
+
     var body: some View {
         NavigationView {
             Form {
@@ -13,7 +18,7 @@ struct SettingsView: View {
                         Label("Bluetooth not powered on", systemImage: "exclamationmark.triangle")
                             .foregroundColor(.secondary)
                     }
-                    
+
                     if terminal.isReady {
                         HStack {
                             Image(systemName: "dot.radiowaves.left.and.right")
@@ -29,10 +34,16 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     NavigationLink("Manage Devices") {
                         DeviceListView()
                     }
+                }
+                Section(
+                    header: Text("Payment Options"),
+                    footer: Text("When on, the card terminal asks the customer to pick a tip (10% / 12.5% / 15% / 20% / No tip) before the card tap.")
+                ) {
+                    Toggle("Allow tipping", isOn: $allowTipping)
                 }
                 Section(header: Text("Receipts")) {
                     Toggle("Include card payment details", isOn: $receiptIncludeCardDetails)

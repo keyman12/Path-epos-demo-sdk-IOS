@@ -82,6 +82,9 @@ struct TransactionLogView: View {
 
     private func buildReceiptFromData(_ data: ReceiptData, entry: TerminalTransactionLogEntry) -> FullReceipt {
         let total = Double(entry.amountMinor) / 100.0
+        let tip = entry.tipPounds
+        // Line-item subtotal is the pre-tip base; VAT is derived from that.
+        let base = total - tip
         return FullReceipt(
             merchantName: "PATH COFFEE LONDON",
             merchantAddress: "12 Sample Street, London W1A 1AA",
@@ -89,18 +92,21 @@ struct TransactionLogView: View {
             tillNumber: "03",
             cashierName: "—",
             orderDate: entry.date,
-            lineItems: [ReceiptLineItem(name: entry.type == .refund ? "Card refund" : "Card payment", quantity: 1, unitPrice: total)],
-            subtotal: total / 1.2,
-            vatAmount: total - total / 1.2,
+            lineItems: [ReceiptLineItem(name: entry.type == .refund ? "Card refund" : "Card payment", quantity: 1, unitPrice: base)],
+            subtotal: base / 1.2,
+            vatAmount: base - base / 1.2,
             total: total,
             currency: entry.currency,
             cardReceiptBlock: data.customerReceipt,
-            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"]
+            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"],
+            tipAmount: tip
         )
     }
 
     private func buildReceiptFromEntry(_ entry: TerminalTransactionLogEntry) -> FullReceipt {
         let total = Double(entry.amountMinor) / 100.0
+        let tip = entry.tipPounds
+        let base = total - tip
         return FullReceipt(
             merchantName: "PATH COFFEE LONDON",
             merchantAddress: "12 Sample Street, London W1A 1AA",
@@ -108,13 +114,14 @@ struct TransactionLogView: View {
             tillNumber: "03",
             cashierName: "—",
             orderDate: entry.date,
-            lineItems: [ReceiptLineItem(name: entry.type == .refund ? "Card refund" : "Card payment", quantity: 1, unitPrice: total)],
-            subtotal: total / 1.2,
-            vatAmount: total - total / 1.2,
+            lineItems: [ReceiptLineItem(name: entry.type == .refund ? "Card refund" : "Card payment", quantity: 1, unitPrice: base)],
+            subtotal: base / 1.2,
+            vatAmount: base - base / 1.2,
             total: total,
             currency: entry.currency,
             cardReceiptBlock: nil,
-            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"]
+            footerLines: ["Thank you for your visit", "Returns accepted within 14 days"],
+            tipAmount: tip
         )
     }
 }
@@ -171,8 +178,15 @@ struct TransactionCard: View {
                     Text(entry.formattedAmount)
                         .font(.title2)
                         .fontWeight(.bold)
+                    // Small breakdown hint when a tip was added, so cashier
+                    // and customer can see the split at a glance.
+                    if entry.hasTip {
+                        Text("incl. \(entry.formattedTip) tip")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
                 }
-                .frame(width: 100, alignment: .leading)
+                .frame(width: 110, alignment: .leading)
 
                 Divider().frame(height: 50)
 

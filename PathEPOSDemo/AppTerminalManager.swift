@@ -52,8 +52,8 @@ final class AppTerminalManager: ObservableObject, TerminalConnectionManager {
     func connect(to device: TerminalDeviceItem) { wrapped.connect(to: device) }
     func disconnect() { wrapped.disconnect() }
     
-    func startSale(amountMinor: Int, currency: String, tipMinor: Int?) {
-        wrapped.startSale(amountMinor: amountMinor, currency: currency, tipMinor: tipMinor)
+    func startSale(amountMinor: Int, currency: String, tipMinor: Int?, promptForTip: Bool) {
+        wrapped.startSale(amountMinor: amountMinor, currency: currency, tipMinor: tipMinor, promptForTip: promptForTip)
     }
     func startRefund(amountMinor: Int, currency: String, originalTransactionId: String?, originalReqId: String?, originalEntryId: UUID?) {
         wrapped.startRefund(amountMinor: amountMinor, currency: currency, originalTransactionId: originalTransactionId, originalReqId: originalReqId, originalEntryId: originalEntryId)

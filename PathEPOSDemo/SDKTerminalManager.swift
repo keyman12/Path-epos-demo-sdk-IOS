@@ -297,7 +297,7 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         log("---")
     }
     
-    func startSale(amountMinor: Int, currency: String, tipMinor: Int? = nil) {
+    func startSale(amountMinor: Int, currency: String, tipMinor: Int? = nil, promptForTip: Bool = false) {
         clearForNewTransaction()
         guard isReady else {
             log("Not connected. Connect to terminal first.")
@@ -305,8 +305,14 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         }
         let envelope = RequestEnvelope.create(sdkVersion: "0.1.1", adapterVersion: "0.1.1")
         lastWireRequestId = envelope.requestId
-        let request = TransactionRequest.sale(amountMinor: amountMinor, currency: currency, tipMinor: tipMinor, envelope: envelope)
-        log("Sending Sale request…")
+        let request = TransactionRequest.sale(
+            amountMinor: amountMinor,
+            currency: currency,
+            tipMinor: tipMinor,
+            promptForTip: promptForTip,
+            envelope: envelope
+        )
+        log("Sending Sale request\(promptForTip ? " (prompt for tip)" : "")…")
         lastAckDate = Date()
         currentSaleTask = Task {
             do {
@@ -378,26 +384,41 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
         case .approved, .refunded: statusStr = "approved"
         case .declined: statusStr = "declined"
         case .timedOut: statusStr = "timed_out"
+        case .customerTimeout: statusStr = "customer_timeout"
         case .failed: statusStr = "failed"
         default: statusStr = "declined"
         }
-        lastResult = [
+        // Build the result dict the UI observes. Includes the tip breakdown
+        // so CardProcessingView can pass it into the receipt.
+        var dict: [String: Any] = [
             "txn_id": result.transactionId ?? result.requestId,
             "req_id": result.requestId,
             "status": statusStr,
             "amount": result.amountMinor,
+            "base_amount": result.baseAmountMinor,
+            "tip_amount": result.tipAmountMinor,
+            "total_amount": result.totalAmountMinor,
             "currency": result.currency,
             "card_last_four": result.cardLastFour ?? "0000"
         ]
+        if let pct = result.tipPercentX10 { dict["tip_percent_x10"] = pct }
+        if let err = result.error { dict["error"] = err.message }
+        lastResult = dict
+
         if let err = result.error {
             log("✓ Result: \(statusStr) — \(err.message)")
+        } else if result.tipAmountMinor > 0 {
+            // Tip landed — note the breakdown in the log for diagnostics.
+            let base = Double(result.baseAmountMinor) / 100.0
+            let tip = Double(result.tipAmountMinor) / 100.0
+            log(String(format: "✓ Result: %@ (base £%.2f + tip £%.2f)", statusStr, base, tip))
         } else {
             log("✓ Result: \(statusStr)")
         }
-        
+
         let txnStatus: TerminalTransactionStatus = {
             if result.state == .approved || result.state == .refunded { return .success }
-            if result.state == .timedOut { return .timedOut }
+            if result.state == .timedOut || result.state == .customerTimeout { return .timedOut }
             return .decline
         }()
         let entry = TerminalTransactionLogEntry(
@@ -410,7 +431,9 @@ final class SDKTerminalManager: ObservableObject, TerminalConnectionManager {
             status: txnStatus,
             reqId: result.requestId,
             transactionId: result.transactionId,
-            isCash: false
+            isCash: false,
+            baseAmountMinor: result.baseAmountMinor,
+            tipAmountMinor: result.tipAmountMinor
         )
         transactionLog.insert(entry, at: 0)
         if cmd == "Refund", let originalId = pendingRefundOriginalEntryId,
